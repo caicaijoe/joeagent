@@ -1,4 +1,4 @@
-﻿﻿"use client";
+??"use client";
 
 import {
   animate,
@@ -605,10 +605,8 @@ export default function HomePage() {
                 shadows={!useLowCostMobileTier}
                 onCreated={({ gl }) => {
                   gl.outputColorSpace = THREE.SRGBColorSpace;
-                  gl.toneMapping = useLowCostMobileTier
-                    ? THREE.NoToneMapping
-                    : THREE.ACESFilmicToneMapping;
-                  gl.toneMappingExposure = useLowCostMobileTier ? 1 : 1.08;
+                  gl.toneMapping = THREE.ACESFilmicToneMapping;
+                  gl.toneMappingExposure = useLowCostMobileTier ? 1.34 : 1.08;
                 }}
               >
                 <PerspectiveCamera
@@ -619,11 +617,30 @@ export default function HomePage() {
 
                 {useLowCostMobileTier ? (
                   <>
-                    <ambientLight intensity={1.2} color="#ffffff" />
+                    <ambientLight intensity={1.55} color="#ffffff" />
+                    <hemisphereLight
+                      skyColor="#f7fbff"
+                      groundColor="#16120a"
+                      intensity={0.82}
+                    />
                     <directionalLight
-                      position={[0.45, 1.2, 5.4]}
-                      intensity={1.65}
+                      position={[0.15, 0.95, 5.9]}
+                      intensity={2.25}
                       color="#ffffff"
+                    />
+                    <pointLight
+                      ref={fillLightRef}
+                      position={[-0.35, 0.3, 4.9]}
+                      intensity={1.72}
+                      color="#ffffff"
+                      distance={14}
+                    />
+                    <pointLight
+                      ref={goldLightRef}
+                      position={[1.8, 1.8, 4.4]}
+                      intensity={1.46}
+                      color="#ffe7a8"
+                      distance={13}
                     />
                   </>
                 ) : (
