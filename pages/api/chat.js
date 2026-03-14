@@ -100,7 +100,6 @@ const AI_PROVIDER_ENV_NAMES = [
   "PRIMARY_AI_PROVIDER",
   "LLM_PROVIDER",
 ];
-const DEBUG_HEADER_NAMES = ["x-joeagent-debug", "x-debug-relay"];
 const DEFAULT_QWEN_MODEL = "qwen-plus";
 const DEFAULT_QWEN_BASE_URL =
   "https://dashscope.aliyuncs.com/compatible-mode/v1";
@@ -128,9 +127,6 @@ const getFirstEnvValue = (names) => {
   return "";
 };
 
-const getVisibleEnvNames = (names) =>
-  names.filter((name) => Boolean(readEnvValue(name)));
-
 const normalizeProviderName = (value) => {
   const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
 
@@ -145,25 +141,30 @@ const normalizeProviderName = (value) => {
   return "";
 };
 
-const isTruthyDebugFlag = (value) => {
-  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
-  return (
-    normalized === "1" ||
-    normalized === "true" ||
-    normalized === "yes" ||
-    normalized === "on" ||
-    normalized === "relay"
-  );
-};
-
-const shouldReturnDebugEnvelope = (req) => {
-  if (isTruthyDebugFlag(req.query?.debug)) {
-    return true;
+const looksLikeApiKey = (value) => {
+  if (typeof value !== "string") {
+    return false;
   }
 
-  return DEBUG_HEADER_NAMES.some((headerName) =>
-    isTruthyDebugFlag(req.headers[headerName])
-  );
+  const trimmed = value.trim();
+
+  if (!trimmed || normalizeProviderName(trimmed)) {
+    return false;
+  }
+
+  return trimmed.startsWith("sk-") || trimmed.length >= 24;
+};
+
+const getMisplacedProviderSecret = () => {
+  for (const name of AI_PROVIDER_ENV_NAMES) {
+    const value = readEnvValue(name);
+
+    if (looksLikeApiKey(value)) {
+      return value;
+    }
+  }
+
+  return "";
 };
 
 const buildProviderOrder = (requestedProvider = "") => {
@@ -188,7 +189,7 @@ const getAIProviderConfigs = (requestedProvider = "") => {
     qwen: {
       name: "qwen",
       label: "QWEN",
-      apiKey: getFirstEnvValue(QWEN_API_KEY_ENV_NAMES),
+      apiKey: getFirstEnvValue(QWEN_API_KEY_ENV_NAMES) || getMisplacedProviderSecret(),
       model: getFirstEnvValue(QWEN_MODEL_ENV_NAMES) || DEFAULT_QWEN_MODEL,
       baseURL: getFirstEnvValue(QWEN_BASE_URL_ENV_NAMES) || DEFAULT_QWEN_BASE_URL,
     },
@@ -343,29 +344,6 @@ const buildExplicitProviderMissingReply = (providerName) => {
   }
 
   return AI_OFFLINE_REPLY;
-};
-
-const buildRelayDebug = (requestedProvider = "") => {
-  const effectiveProvider = normalizeProviderName(requestedProvider) || "qwen";
-  const qwenApiKeyNames = getVisibleEnvNames(QWEN_API_KEY_ENV_NAMES);
-  const openaiApiKeyNames = getVisibleEnvNames(OPENAI_API_KEY_ENV_NAMES);
-  const qwenModel = getFirstEnvValue(QWEN_MODEL_ENV_NAMES) || DEFAULT_QWEN_MODEL;
-  const qwenBaseUrl =
-    getFirstEnvValue(QWEN_BASE_URL_ENV_NAMES) || DEFAULT_QWEN_BASE_URL;
-
-  return {
-    requestedProvider: requestedProvider || null,
-    effectiveProvider,
-    env: {
-      qwenApiKeyDetected: qwenApiKeyNames.length > 0,
-      qwenApiKeyNames,
-      qwenModel,
-      qwenBaseUrl,
-      openaiApiKeyDetected: openaiApiKeyNames.length > 0,
-      openaiApiKeyNames,
-      aiProviderEnv: getFirstEnvValue(AI_PROVIDER_ENV_NAMES) || null,
-    },
-  };
 };
 
 async function fetchJson(url, timeoutMs = 8000) {
@@ -578,13 +556,6 @@ export default async function handler(req, res) {
     const requestedProvider =
       normalizeProviderName(req.body?.provider) ||
       normalizeProviderName(req.headers["x-provider"]);
-
-    if (shouldReturnDebugEnvelope(req)) {
-      return res.status(200).json({
-        reply: "RELAY DEBUG ENVELOPE GENERATED.",
-        debug: buildRelayDebug(requestedProvider),
-      });
-    }
 
     const aiResult = await generateAIReply(messages, requestedProvider);
 
