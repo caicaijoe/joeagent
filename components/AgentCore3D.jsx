@@ -1,4 +1,4 @@
-??"use client";
+"use client";
 
 import { Center, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
