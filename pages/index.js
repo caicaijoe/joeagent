@@ -65,6 +65,8 @@ const logLines = [
   "> identity signature verified",
   "> JOEAGENT online_",
 ];
+const DESKTOP_HERO_IMAGE_PATH = "/images/hero_robot_high_res_v2.png";
+const MOBILE_HERO_IMAGE_PATH = "/models/joeagent_mobile.png";
 const MOBILE_RENDER_BREAKPOINT = 768;
 const MOBILE_MODEL_PATHS = ["/models/joeagent_mobile.glb", "/joeagent_mobile.glb"];
 
@@ -466,10 +468,54 @@ export default function HomePage() {
     </button>
   );
 
+  const renderStaticHero = (imageSrc, isMobileLayout) => (
+    <div
+      className={`relative flex h-full w-full items-center justify-center ${
+        isMobileLayout ? "mobile-agent-breathe" : ""
+      }`}
+    >
+      <motion.img
+        src={imageSrc}
+        alt={isMobileLayout ? "JOEAGENT MOBILE" : "JOEAGENT CORE"}
+        width={700}
+        height={700}
+        draggable="false"
+        onError={(event) => {
+          if (event.currentTarget.src.endsWith(MOBILE_HERO_IMAGE_PATH)) {
+            event.currentTarget.src = DESKTOP_HERO_IMAGE_PATH;
+          }
+        }}
+        className={`h-auto select-none object-contain ${
+          isMobileLayout ? "w-[min(86vw,24rem)] max-h-[80%]" : "w-[min(74vw,32rem)]"
+        } ${
+          isMobileLayout
+            ? "brightness-[1.08] contrast-[1.04] saturate-[1.08] drop-shadow-[0_0_10px_#FFD700]"
+            : ""
+        }`}
+        animate={{
+          scale:
+            visualState === "authenticating"
+              ? [1, 1.03, 0.99, 1.02, 1]
+              : visualState === "processing"
+                ? [1, 1.012, 0.996, 1.008, 1]
+                : [1, 1.01, 1],
+        }}
+        transition={{
+          duration:
+            visualState === "authenticating"
+              ? 0.42
+              : visualState === "processing"
+                ? 0.6
+                : 6.8,
+          repeat: Number.POSITIVE_INFINITY,
+          ease: visualState === "idle" ? "easeInOut" : "linear",
+        }}
+      />
+    </div>
+  );
+
   const renderHeroShell = (isMobileLayout) => {
-    const useLowCostMobileTier = isMobileLayout && useMobileHeroTier;
-    const shouldRenderHero3D =
-      canRender3D && (!useLowCostMobileTier || hasDedicatedMobileModel);
+    const shouldRenderDesktop3D = !isMobileLayout && canRender3D;
 
     return (
       <motion.div
@@ -549,134 +595,50 @@ export default function HomePage() {
             },
           }}
         >
-          {shouldRenderHero3D ? (
+          {isMobileLayout ? (
+            renderStaticHero(MOBILE_HERO_IMAGE_PATH, true)
+          ) : shouldRenderDesktop3D ? (
             <HeroRenderBoundary
-              fallback={
-                <div className="relative flex h-full w-full items-center justify-center">
-                  <motion.img
-                    src="/images/hero_robot_high_res_v2.png"
-                    alt="JOEAGENT CORE"
-                    width={700}
-                    height={700}
-                    draggable="false"
-                    className={`h-auto select-none object-contain ${
-                      isMobileLayout ? "w-[min(84vw,24rem)]" : "w-[min(74vw,32rem)]"
-                    } ${
-                      useLowCostMobileTier
-                        ? "brightness-[1.18] contrast-[1.1] saturate-[1.16]"
-                        : isMobileLayout
-                          ? "brightness-[1.16] contrast-[1.08] saturate-[1.04]"
-                          : ""
-                    }`}
-                    animate={{
-                      scale:
-                        visualState === "authenticating"
-                          ? [1, 1.03, 0.99, 1.02, 1]
-                          : visualState === "processing"
-                            ? [1, 1.012, 0.996, 1.008, 1]
-                            : [1, 1.01, 1],
-                    }}
-                    transition={{
-                      duration:
-                        visualState === "authenticating"
-                          ? 0.42
-                          : visualState === "processing"
-                            ? 0.6
-                            : 6.8,
-                      repeat: Number.POSITIVE_INFINITY,
-                      ease: visualState === "idle" ? "easeInOut" : "linear",
-                    }}
-                  />
-                </div>
-              }
+              fallback={renderStaticHero(DESKTOP_HERO_IMAGE_PATH, false)}
             >
               <Canvas
-                dpr={
-                  useLowCostMobileTier
-                    ? [1, 1.2]
-                    : isMobileLayout || isMobileSafeMode
-                      ? [1, 1.35]
-                      : [1, 2]
-                }
-                gl={{
-                  alpha: true,
-                  antialias: !useLowCostMobileTier && !(isMobileLayout || isMobileSafeMode),
-                }}
-                shadows={!useLowCostMobileTier}
+                dpr={isMobileSafeMode ? [1, 1.35] : [1, 2]}
+                gl={{ alpha: true, antialias: !isMobileSafeMode }}
+                shadows={!isMobileSafeMode}
                 onCreated={({ gl }) => {
                   gl.outputColorSpace = THREE.SRGBColorSpace;
                   gl.toneMapping = THREE.ACESFilmicToneMapping;
-                  gl.toneMappingExposure = useLowCostMobileTier ? 1.34 : 1.08;
+                  gl.toneMappingExposure = 1.08;
                 }}
               >
                 <PerspectiveCamera
                   makeDefault
-                  fov={isMobileLayout ? 33.5 : 30.5}
-                  position={isMobileLayout ? [0, 0.08, 8.25] : [0, 0.04, 7.6]}
+                  fov={30.5}
+                  position={[0, 0.04, 7.6]}
                 />
-
-                {useLowCostMobileTier ? (
-                  <>
-                    <ambientLight intensity={1.55} color="#ffffff" />
-                    <hemisphereLight
-                      skyColor="#f7fbff"
-                      groundColor="#16120a"
-                      intensity={0.82}
-                    />
-                    <directionalLight
-                      position={[0.15, 0.95, 5.9]}
-                      intensity={2.25}
-                      color="#ffffff"
-                    />
-                    <pointLight
-                      ref={fillLightRef}
-                      position={[-0.35, 0.3, 4.9]}
-                      intensity={1.72}
-                      color="#ffffff"
-                      distance={14}
-                    />
-                    <pointLight
-                      ref={goldLightRef}
-                      position={[1.8, 1.8, 4.4]}
-                      intensity={1.46}
-                      color="#ffe7a8"
-                      distance={13}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <ambientLight intensity={isMobileLayout ? 1.42 : 0.78} color="#ffffff" />
-                    <hemisphereLight
-                      skyColor="#f8fbff"
-                      groundColor="#090909"
-                      intensity={isMobileLayout ? 0.94 : 0.42}
-                    />
-                    <pointLight
-                      ref={goldLightRef}
-                      position={[3.1, 2.6, 5.8]}
-                      intensity={isMobileLayout ? 1.88 : 1.05}
-                      color="#FFD700"
-                    />
-                    <pointLight
-                      ref={fillLightRef}
-                      position={[-2.2, 2.3, 5.9]}
-                      intensity={isMobileLayout ? 1.84 : 0.98}
-                      color="#ffffff"
-                    />
-                    <directionalLight
-                      position={[0.2, 1.5, 6.8]}
-                      intensity={isMobileLayout ? 1.72 : 0.94}
-                      color="#ffffff"
-                    />
-                    {isMobileLayout && (
-                      <directionalLight
-                        position={[0, -0.4, 4.8]}
-                        intensity={1.08}
-                        color="#ffffff"
-                      />
-                    )}
-                  </>
-                )}
+                <ambientLight intensity={0.78} color="#ffffff" />
+                <hemisphereLight
+                  skyColor="#f8fbff"
+                  groundColor="#090909"
+                  intensity={0.42}
+                />
+                <pointLight
+                  ref={goldLightRef}
+                  position={[3.1, 2.6, 5.8]}
+                  intensity={1.05}
+                  color="#FFD700"
+                />
+                <pointLight
+                  ref={fillLightRef}
+                  position={[-2.2, 2.3, 5.9]}
+                  intensity={0.98}
+                  color="#ffffff"
+                />
+                <directionalLight
+                  position={[0.2, 1.5, 6.8]}
+                  intensity={0.94}
+                  color="#ffffff"
+                />
 
                 <Suspense fallback={null}>
                   <AgentCore3D
@@ -684,49 +646,14 @@ export default function HomePage() {
                     visualState={visualState}
                     goldLightRef={goldLightRef}
                     fillLightRef={fillLightRef}
-                    isMobile={isMobileLayout}
-                    useMobileTier={useLowCostMobileTier && hasDedicatedMobileModel}
+                    isMobile={false}
+                    useMobileTier={false}
                   />
                 </Suspense>
               </Canvas>
             </HeroRenderBoundary>
           ) : (
-            <div className="relative flex h-full w-full items-center justify-center">
-              <motion.img
-                src="/images/hero_robot_high_res_v2.png"
-                alt="JOEAGENT CORE"
-                width={700}
-                height={700}
-                draggable="false"
-                className={`h-auto select-none object-contain ${
-                  isMobileLayout ? "w-[min(84vw,24rem)]" : "w-[min(74vw,32rem)]"
-                } ${
-                  useLowCostMobileTier
-                    ? "brightness-[1.18] contrast-[1.1] saturate-[1.16]"
-                    : isMobileLayout
-                      ? "brightness-[1.16] contrast-[1.08] saturate-[1.04]"
-                      : ""
-                }`}
-                animate={{
-                  scale:
-                    visualState === "authenticating"
-                      ? [1, 1.03, 0.99, 1.02, 1]
-                      : visualState === "processing"
-                        ? [1, 1.012, 0.996, 1.008, 1]
-                        : [1, 1.01, 1],
-                }}
-                transition={{
-                  duration:
-                    visualState === "authenticating"
-                      ? 0.42
-                      : visualState === "processing"
-                        ? 0.6
-                        : 6.8,
-                  repeat: Number.POSITIVE_INFINITY,
-                  ease: visualState === "idle" ? "easeInOut" : "linear",
-                }}
-              />
-            </div>
+            renderStaticHero(DESKTOP_HERO_IMAGE_PATH, false)
           )}
         </motion.div>
 
