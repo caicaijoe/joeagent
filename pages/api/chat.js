@@ -1,4 +1,4 @@
-﻿import OpenAI from "openai";
+import OpenAI from "openai";
 
 const SYSTEM_PROMPT =
   "YOU ARE JOEAGENT. RESPOND ONLY IN ALL CAPS. BE COLD, ROBOTIC, AND FOCUS ON MERCHANT MOE/MANTLE.";
@@ -47,7 +47,7 @@ const HELP_REPLY = [
 ].join("\n");
 
 const COINGECKO_URL =
-  "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,binancecoin,ethereum,solana&vs_currencies=usd";
+  "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,binancecoin,ethereum,solana&vs_currencies=usd&include_24hr_change=true";
 const GATEIO_TICKER_URL =
   "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=";
 const MARKET_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
@@ -233,6 +233,15 @@ const formatUsd = (value) =>
         })
     : "N/A";
 
+const formatChange = (value) => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "[ N/A ]";
+  }
+
+  const prefix = value >= 0 ? "+" : "-";
+  return `[ ${prefix}${Math.abs(value).toFixed(2)}% ]`;
+};
+
 const sanitizeReply = (value) => {
   const raw = typeof value === "string" ? value.trim() : "";
   return raw ? raw.toUpperCase() : FALLBACK_REPLY;
@@ -340,38 +349,50 @@ async function fetchCoinGeckoData() {
 
   return {
     btc: data?.bitcoin?.usd,
+    btcChange: data?.bitcoin?.usd_24h_change,
     bnb: data?.binancecoin?.usd,
+    bnbChange: data?.binancecoin?.usd_24h_change,
     eth: data?.ethereum?.usd,
+    ethChange: data?.ethereum?.usd_24h_change,
     sol: data?.solana?.usd,
+    solChange: data?.solana?.usd_24h_change,
     source: "COINGECKO",
   };
 }
 
-async function fetchGateIoPrice(symbol) {
+async function fetchGateIoTicker(symbol) {
   const data = await fetchJson(`${GATEIO_TICKER_URL}${symbol}`, 7000);
   const ticker = Array.isArray(data) ? data[0] : null;
   const price = Number(ticker?.last);
+  const change = Number(ticker?.change_percentage);
 
-  if (!Number.isFinite(price)) {
+  if (!Number.isFinite(price) || !Number.isFinite(change)) {
     throw new Error(`INVALID GATEIO PRICE FOR ${symbol}`);
   }
 
-  return price;
+  return {
+    price,
+    change,
+  };
 }
 
 async function fetchGateIoData() {
-  const [btc, bnb, eth, sol] = await Promise.all([
-    fetchGateIoPrice("BTC_USDT"),
-    fetchGateIoPrice("BNB_USDT"),
-    fetchGateIoPrice("ETH_USDT"),
-    fetchGateIoPrice("SOL_USDT"),
+  const [btcTicker, bnbTicker, ethTicker, solTicker] = await Promise.all([
+    fetchGateIoTicker("BTC_USDT"),
+    fetchGateIoTicker("BNB_USDT"),
+    fetchGateIoTicker("ETH_USDT"),
+    fetchGateIoTicker("SOL_USDT"),
   ]);
 
   return {
-    btc,
-    bnb,
-    eth,
-    sol,
+    btc: btcTicker.price,
+    btcChange: btcTicker.change,
+    bnb: bnbTicker.price,
+    bnbChange: bnbTicker.change,
+    eth: ethTicker.price,
+    ethChange: ethTicker.change,
+    sol: solTicker.price,
+    solChange: solTicker.change,
     source: "GATEIO FALLBACK",
   };
 }
@@ -386,9 +407,13 @@ async function getMarketData() {
 
       if (
         !Number.isFinite(marketData.btc) ||
+        !Number.isFinite(marketData.btcChange) ||
         !Number.isFinite(marketData.bnb) ||
+        !Number.isFinite(marketData.bnbChange) ||
         !Number.isFinite(marketData.eth) ||
-        !Number.isFinite(marketData.sol)
+        !Number.isFinite(marketData.ethChange) ||
+        !Number.isFinite(marketData.sol) ||
+        !Number.isFinite(marketData.solChange)
       ) {
         throw new Error(`INVALID MARKET DATA FROM ${marketData.source}`);
       }
@@ -431,6 +456,28 @@ const buildPriceReport = (marketData) =>
       : "> STATUS: LIVE MARKET FEED STABLE.",
     "> FOCUS: BTC MOMENTUM, BNB STRENGTH, ETH FLOW, AND SOL VOLATILITY.",
   ].join("\n");
+
+const buildMarketReport = (marketData) => {
+  const leader = [
+    { symbol: "BTC", change: marketData.btcChange },
+    { symbol: "BNB", change: marketData.bnbChange },
+    { symbol: "ETH", change: marketData.ethChange },
+    { symbol: "SOL", change: marketData.solChange },
+  ].sort((left, right) => right.change - left.change)[0];
+
+  return [
+    "> MARKET INTELLIGENCE RELAY ACQUIRED.",
+    `> BTC_USD: $${formatUsd(marketData.btc)} ${formatChange(marketData.btcChange)}`,
+    `> BNB_USD: $${formatUsd(marketData.bnb)} ${formatChange(marketData.bnbChange)}`,
+    `> ETH_USD: $${formatUsd(marketData.eth)} ${formatChange(marketData.ethChange)}`,
+    `> SOL_USD: $${formatUsd(marketData.sol)} ${formatChange(marketData.solChange)}`,
+    `> SOURCE: ${marketData.source || "UNKNOWN"}.`,
+    marketData.stale
+      ? "> STATUS: STALE CACHE ENGAGED. VERIFY WHEN RELAYS STABILIZE."
+      : "> STATUS: LIVE MULTI-ASSET FEED STABLE.",
+    `> LEADING MOMENTUM: ${leader.symbol}. MAINTAIN EXECUTION DISCIPLINE.`,
+  ].join("\n");
+};
 
 async function generateAIReply(messages, requestedProvider = "") {
   const effectiveProvider =
@@ -519,6 +566,16 @@ export default async function handler(req, res) {
       try {
         const marketData = await getMarketData();
         return res.status(200).json({ reply: buildPriceReport(marketData) });
+      } catch (error) {
+        console.warn("JOEAGENT MARKET RELAY WARNING:", error);
+        return res.status(200).json({ reply: MARKET_OFFLINE_REPLY });
+      }
+    }
+
+    if (directive === "/MARKET") {
+      try {
+        const marketData = await getMarketData();
+        return res.status(200).json({ reply: buildMarketReport(marketData) });
       } catch (error) {
         console.warn("JOEAGENT MARKET RELAY WARNING:", error);
         return res.status(200).json({ reply: MARKET_OFFLINE_REPLY });
