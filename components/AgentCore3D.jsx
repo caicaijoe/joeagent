@@ -1,4 +1,4 @@
-﻿"use client";
+﻿﻿"use client";
 
 import { Center, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
@@ -9,7 +9,6 @@ const DESKTOP_MODEL_PATH = "/joeagent.glb";
 const MOBILE_MODEL_CANDIDATES = [
   "/models/joeagent_mobile.glb",
   "/joeagent_mobile.glb",
-  "/models/Meshy_AI_Golden_Circuit_0314100435_texture.glb",
 ];
 const IDLE_GOLD = new THREE.Color("#FFD700");
 const ACTIVE_GOLD = new THREE.Color("#FFF4B5");
@@ -348,5 +347,6 @@ export default function AgentCore3D({
 }
 
 useGLTF.preload(DESKTOP_MODEL_PATH);
-useGLTF.preload("/models/Meshy_AI_Golden_Circuit_0314100435_texture.glb");
+useGLTF.preload("/models/joeagent_mobile.glb");
+
 
