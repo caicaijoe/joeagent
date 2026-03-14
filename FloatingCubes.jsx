@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 
 const cubeCount = 6;
+const round = (value, precision = 3) =>
+  Number(value.toFixed(precision));
 
 const rand = (seed) => {
   const x = Math.sin(seed * 43758.5453123) * 10000;
@@ -10,16 +12,16 @@ const rand = (seed) => {
 };
 
 const cubes = Array.from({ length: cubeCount }, (_, index) => {
-  const size = 72 + rand(index + 1) * 88;
-  const left = 8 + rand(index + 11) * 84;
-  const top = 10 + rand(index + 21) * 78;
-  const depth = -320 + rand(index + 31) * 640;
-  const rotateX = rand(index + 41) * 360;
-  const rotateY = rand(index + 51) * 360;
-  const rotateZ = rand(index + 61) * 120 - 60;
-  const duration = 15 + rand(index + 71) * 5;
-  const delay = rand(index + 81) * -8;
-  const floatOffset = 14 + rand(index + 91) * 22;
+  const size = round(72 + rand(index + 1) * 88);
+  const left = round(8 + rand(index + 11) * 84);
+  const top = round(10 + rand(index + 21) * 78);
+  const depth = round(-320 + rand(index + 31) * 640);
+  const rotateX = round(rand(index + 41) * 360);
+  const rotateY = round(rand(index + 51) * 360);
+  const rotateZ = round(rand(index + 61) * 120 - 60);
+  const duration = round(15 + rand(index + 71) * 5);
+  const delay = round(rand(index + 81) * -8);
+  const floatOffset = round(14 + rand(index + 91) * 22);
 
   return {
     id: index,
@@ -48,7 +50,7 @@ export default function FloatingCubes() {
     >
       <div className="absolute inset-0" style={{ transformStyle: "preserve-3d" }}>
         {cubes.map((cube) => {
-          const half = cube.size / 2;
+          const half = round(cube.size / 2);
 
           return (
             <div

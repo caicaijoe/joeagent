@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useAgentSound from "./hooks/useAgentSound";
 
 export default function TypewriterText({
   text,
@@ -8,6 +9,7 @@ export default function TypewriterText({
   onComplete,
   onProgress,
 }) {
+  const { playTyping } = useAgentSound();
   const [displayedText, setDisplayedText] = useState("");
   const [isComplete, setIsComplete] = useState(false);
 
@@ -25,6 +27,7 @@ export default function TypewriterText({
   useEffect(() => {
     if (displayedText.length < text.length) {
       const timer = setTimeout(() => {
+        playTyping();
         setDisplayedText(text.slice(0, displayedText.length + 1));
       }, speed);
 
@@ -38,12 +41,12 @@ export default function TypewriterText({
         onComplete();
       }
     }
-  }, [displayedText, text, speed, isComplete, onComplete]);
+  }, [displayedText, text, speed, isComplete, onComplete, playTyping]);
 
   return (
     <span
       aria-live="polite"
-      className="font-mono text-agent-gold drop-shadow-[0_0_5px_rgba(255,215,0,0.5)]"
+      className="font-mono whitespace-pre-wrap text-agent-gold drop-shadow-[0_0_5px_rgba(255,215,0,0.5)]"
     >
       {displayedText}
       {!isComplete && (
