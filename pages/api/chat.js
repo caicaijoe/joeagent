@@ -40,14 +40,14 @@ const MARKET_OFFLINE_REPLY =
   "PRICE FEED UNAVAILABLE. COINGECKO RELAY FAILED. RETRY THE DIRECTIVE.";
 const HELP_REPLY = [
   "> AVAILABLE DIRECTIVES:",
-  "> /PRICE - PULL LIVE JOE, BTC, AND MNT PRICES.",
+  "> /PRICE - PULL LIVE BTC, BNB, ETH, AND SOL PRICES.",
   "> /CHART - REQUEST TECHNICAL CHART ANALYSIS.",
   "> /ALPHA - REQUEST STRATEGIC MARKET INTELLIGENCE.",
   "> /HELP - DISPLAY DIRECTIVE INDEX.",
 ].join("\n");
 
 const COINGECKO_URL =
-  "https://api.coingecko.com/api/v3/simple/price?ids=joe,bitcoin,mantle&vs_currencies=usd";
+  "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,binancecoin,ethereum,solana&vs_currencies=usd";
 const GATEIO_TICKER_URL =
   "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=";
 const MARKET_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
@@ -368,9 +368,10 @@ async function fetchCoinGeckoData() {
   const data = await fetchJson(COINGECKO_URL, 9000);
 
   return {
-    joe: data?.joe?.usd,
     btc: data?.bitcoin?.usd,
-    mnt: data?.mantle?.usd,
+    bnb: data?.binancecoin?.usd,
+    eth: data?.ethereum?.usd,
+    sol: data?.solana?.usd,
     source: "COINGECKO",
   };
 }
@@ -388,16 +389,18 @@ async function fetchGateIoPrice(symbol) {
 }
 
 async function fetchGateIoData() {
-  const [joe, btc, mnt] = await Promise.all([
-    fetchGateIoPrice("JOE_USDT"),
+  const [btc, bnb, eth, sol] = await Promise.all([
     fetchGateIoPrice("BTC_USDT"),
-    fetchGateIoPrice("MNT_USDT"),
+    fetchGateIoPrice("BNB_USDT"),
+    fetchGateIoPrice("ETH_USDT"),
+    fetchGateIoPrice("SOL_USDT"),
   ]);
 
   return {
-    joe,
     btc,
-    mnt,
+    bnb,
+    eth,
+    sol,
     source: "GATEIO FALLBACK",
   };
 }
@@ -411,9 +414,10 @@ async function getMarketData() {
       const marketData = await provider();
 
       if (
-        !Number.isFinite(marketData.joe) ||
         !Number.isFinite(marketData.btc) ||
-        !Number.isFinite(marketData.mnt)
+        !Number.isFinite(marketData.bnb) ||
+        !Number.isFinite(marketData.eth) ||
+        !Number.isFinite(marketData.sol)
       ) {
         throw new Error(`INVALID MARKET DATA FROM ${marketData.source}`);
       }
@@ -446,14 +450,15 @@ async function getMarketData() {
 const buildPriceReport = (marketData) =>
   [
     "> OPERATIVE REPORT: MARKET SNAPSHOT ACQUIRED.",
-    `> JOE USD: $${formatUsd(marketData.joe)}`,
     `> BTC USD: $${formatUsd(marketData.btc)}`,
-    `> MNT USD: $${formatUsd(marketData.mnt)}`,
+    `> BNB USD: $${formatUsd(marketData.bnb)}`,
+    `> ETH USD: $${formatUsd(marketData.eth)}`,
+    `> SOL USD: $${formatUsd(marketData.sol)}`,
     `> SOURCE: ${marketData.source || "UNKNOWN"}.`,
     marketData.stale
       ? "> STATUS: STALE CACHE ENGAGED. VERIFY WHEN RELAYS STABILIZE."
       : "> STATUS: LIVE MARKET FEED STABLE.",
-    "> FOCUS: MERCHANT MOE LIQUIDITY AND MANTLE FLOW.",
+    "> FOCUS: BTC MOMENTUM, BNB STRENGTH, ETH FLOW, AND SOL VOLATILITY.",
   ].join("\n");
 
 async function generateAIReply(messages, requestedProvider = "") {
@@ -568,4 +573,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
 
