@@ -1,4 +1,4 @@
-﻿﻿"use client";
+??"use client";
 
 import { Center, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
@@ -93,15 +93,21 @@ function createMobileMaterial(material) {
     return material;
   }
 
-  const color =
+  const baseColor =
     material.color instanceof THREE.Color
-      ? material.color.clone().offsetHSL(0, 0.03, 0.08)
+      ? material.color.clone()
       : new THREE.Color("#f6d14b");
+  const color = baseColor.clone().offsetHSL(0, 0.08, 0.18);
 
-  const nextMaterial = new THREE.MeshBasicMaterial({
-    name: material.name ? `${material.name}-mobile` : "joeagent-mobile-basic",
+  const nextMaterial = new THREE.MeshPhongMaterial({
+    name: material.name ? `${material.name}-mobile` : "joeagent-mobile-phong",
     color,
     map: material.map ?? null,
+    emissive: baseColor.clone().offsetHSL(0, 0.04, 0.08),
+    emissiveMap: material.emissiveMap ?? material.map ?? null,
+    emissiveIntensity: material.map ? 0.42 : 0.65,
+    specular: new THREE.Color("#ffffff"),
+    shininess: material.map ? 34 : 26,
     transparent: Boolean(
       material.transparent || material.alphaMap || material.opacity < 1
     ),
@@ -109,7 +115,7 @@ function createMobileMaterial(material) {
     alphaMap: material.alphaMap ?? null,
     side: material.side ?? THREE.FrontSide,
     fog: false,
-    toneMapped: false,
+    toneMapped: true,
   });
 
   if ("vertexColors" in nextMaterial && "vertexColors" in material) {
@@ -117,6 +123,7 @@ function createMobileMaterial(material) {
   }
 
   applyColorTextureSettings(nextMaterial.map);
+  applyColorTextureSettings(nextMaterial.emissiveMap);
   nextMaterial.needsUpdate = true;
 
   return nextMaterial;
@@ -247,6 +254,7 @@ export default function AgentCore3D({
     const isAuthenticating = visualState === "authenticating";
     const isAgentProcessing = visualState === "processing";
     const isActive = visualState !== "idle";
+    const useBoostedLights = isMobile || useMobileTier;
     const basePositionY = isMobile ? MOBILE_BASE_POSITION_Y : BASE_POSITION_Y;
 
     if (!model) {
@@ -293,10 +301,12 @@ export default function AgentCore3D({
     if (goldLight) {
       if (isAuthenticating) {
         const pulse = (Math.sin(state.clock.elapsedTime * 14) + 1) / 2;
+        const baseGoldIntensity = useBoostedLights ? 2.1 : 1.8;
+        const goldPulse = useBoostedLights ? 0.92 : 0.72;
 
         goldLight.intensity = THREE.MathUtils.lerp(
           goldLight.intensity,
-          1.8 + pulse * 0.72,
+          baseGoldIntensity + pulse * goldPulse,
           0.24
         );
 
@@ -304,17 +314,23 @@ export default function AgentCore3D({
         goldLight.color.lerp(auraColorRef.current, 0.24);
       } else if (isAgentProcessing) {
         const pulse = (Math.sin(state.clock.elapsedTime * 8) + 1) / 2;
+        const baseGoldIntensity = useBoostedLights ? 1.62 : 1.35;
+        const goldPulse = useBoostedLights ? 0.62 : 0.45;
 
         goldLight.intensity = THREE.MathUtils.lerp(
           goldLight.intensity,
-          1.35 + pulse * 0.45,
+          baseGoldIntensity + pulse * goldPulse,
           0.18
         );
 
         auraColorRef.current.copy(IDLE_GOLD).lerp(ACTIVE_GOLD, pulse);
         goldLight.color.lerp(auraColorRef.current, 0.18);
       } else {
-        goldLight.intensity = THREE.MathUtils.lerp(goldLight.intensity, 0.95, 0.08);
+        goldLight.intensity = THREE.MathUtils.lerp(
+          goldLight.intensity,
+          useBoostedLights ? 1.28 : 0.95,
+          0.08
+        );
         goldLight.color.lerp(IDLE_GOLD, 0.08);
       }
     }
@@ -323,10 +339,16 @@ export default function AgentCore3D({
 
     if (fillLight) {
       const targetFillIntensity = isAuthenticating
-        ? 1.34
+        ? useBoostedLights
+          ? 1.92
+          : 1.34
         : isAgentProcessing
-          ? 1.12
-          : 0.96;
+          ? useBoostedLights
+            ? 1.52
+            : 1.12
+          : useBoostedLights
+            ? 1.34
+            : 0.96;
 
       fillLight.intensity = THREE.MathUtils.lerp(
         fillLight.intensity,
