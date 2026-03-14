@@ -3,8 +3,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
-const INSTALL_TOAST_DELAY_MS = 1800;
-const INSTALL_TOAST_LIFETIME_MS = 9000;
+const INSTALL_TOAST_DELAY_MS = 700;
 const CACHE_PREFIX = "joeagent-runtime";
 
 function isStandaloneMode() {
@@ -48,7 +47,6 @@ async function clearJoeAgentCaches() {
 export default function PwaRuntime() {
   const deferredPromptRef = useRef(null);
   const showTimerRef = useRef(null);
-  const hideTimerRef = useRef(null);
   const [isToastVisible, setIsToastVisible] = useState(false);
   const [canPromptInstall, setCanPromptInstall] = useState(false);
 
@@ -143,26 +141,10 @@ export default function PwaRuntime() {
 
     return () => {
       window.clearTimeout(showTimerRef.current);
-      window.clearTimeout(hideTimerRef.current);
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
-
-  useEffect(() => {
-    if (!isToastVisible) {
-      window.clearTimeout(hideTimerRef.current);
-      return undefined;
-    }
-
-    hideTimerRef.current = window.setTimeout(() => {
-      setIsToastVisible(false);
-    }, INSTALL_TOAST_LIFETIME_MS);
-
-    return () => {
-      window.clearTimeout(hideTimerRef.current);
-    };
-  }, [isToastVisible]);
 
   const handleToastClick = async () => {
     const deferredPrompt = deferredPromptRef.current;
