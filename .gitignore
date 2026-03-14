@@ -1,0 +1,10 @@
+node_modules/
+.next/
+*.log
+
+# Local launch helpers
+start-dev.cmd
+
+# OS/editor noise
+.DS_Store
+Thumbs.db

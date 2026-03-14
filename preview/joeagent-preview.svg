@@ -1,0 +1,120 @@
+<svg width="1440" height="900" viewBox="0 0 1440 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGlow" x1="720" y1="0" x2="720" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2A210C"/>
+      <stop offset="0.36" stop-color="#050505"/>
+      <stop offset="1" stop-color="#050505"/>
+    </linearGradient>
+    <radialGradient id="heroGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(720 390) rotate(90) scale(260 240)">
+      <stop stop-color="#FFD700" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#FFD700" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="metalText" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF6BF"/>
+      <stop offset="24%" stop-color="#FFE878"/>
+      <stop offset="50%" stop-color="#FFD700"/>
+      <stop offset="78%" stop-color="#B98A2D"/>
+      <stop offset="100%" stop-color="#FFF1A6"/>
+    </linearGradient>
+    <linearGradient id="scanline" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#FFD700" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#FFD700" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="titleGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 0.85 0 0 0  0 0 0 0 0  0 0 0 0.6 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" stroke="#FFD700" stroke-opacity="0.08"/>
+    </pattern>
+    <filter id="windowShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="5" dy="5" stdDeviation="0" flood-color="#8A6D3B" flood-opacity="1"/>
+    </filter>
+  </defs>
+
+  <rect width="1440" height="900" fill="#050505"/>
+  <rect width="1440" height="900" fill="url(#bgGlow)"/>
+  <rect width="1440" height="900" fill="url(#grid)"/>
+  <rect width="1440" height="900" fill="url(#heroGlow)"/>
+
+  <g opacity="0.7" stroke="#FFD700" stroke-opacity="0.35" fill="#FFD700" fill-opacity="0.04">
+    <g transform="translate(180 160)">
+      <rect x="0" y="0" width="90" height="90"/>
+      <rect x="22" y="22" width="90" height="90"/>
+      <path d="M90 0L112 22M90 90L112 112M0 90L22 112M0 0L22 22"/>
+    </g>
+    <g transform="translate(1120 120)">
+      <rect x="0" y="0" width="72" height="72"/>
+      <rect x="18" y="18" width="72" height="72"/>
+      <path d="M72 0L90 18M72 72L90 90M0 72L18 90M0 0L18 18"/>
+    </g>
+    <g transform="translate(1220 620)">
+      <rect x="0" y="0" width="108" height="108"/>
+      <rect x="26" y="26" width="108" height="108"/>
+      <path d="M108 0L134 26M108 108L134 134M0 108L26 134M0 0L26 26"/>
+    </g>
+    <g transform="translate(210 620)">
+      <rect x="0" y="0" width="64" height="64"/>
+      <rect x="16" y="16" width="64" height="64"/>
+      <path d="M64 0L80 16M64 64L80 80M0 64L16 80M0 0L16 16"/>
+    </g>
+    <g transform="translate(920 260)">
+      <rect x="0" y="0" width="56" height="56"/>
+      <rect x="14" y="14" width="56" height="56"/>
+      <path d="M56 0L70 14M56 56L70 70M0 56L14 70M0 0L14 14"/>
+    </g>
+  </g>
+
+  <text x="84" y="120" fill="url(#metalText)" font-size="84" font-weight="900" letter-spacing="14" font-family="Orbitron, Arial, sans-serif" filter="url(#titleGlow)">JOEAGENT</text>
+
+  <g transform="translate(720 420)">
+    <ellipse cx="0" cy="120" rx="240" ry="42" fill="#FFD700" fill-opacity="0.12" filter="url(#softGlow)"/>
+    <g filter="url(#softGlow)">
+      <path d="M0 -170C55 -170 108 -142 136 -72C155 -24 160 20 160 78C160 150 95 214 0 214C-95 214 -160 150 -160 78C-160 20 -155 -24 -136 -72C-108 -142 -55 -170 0 -170Z" fill="#0C0C0C" stroke="#FFD700" stroke-opacity="0.58" stroke-width="3"/>
+      <path d="M-82 -112C-82 -155 -47 -190 0 -190C47 -190 82 -155 82 -112C82 -74 57 -40 30 -12C19 -1 12 14 12 32V73H-12V32C-12 14 -19 -1 -30 -12C-57 -40 -82 -74 -82 -112Z" fill="#0A0A0A" stroke="#FFD700" stroke-opacity="0.48" stroke-width="2"/>
+      <path d="M-62 16C-44 -16 -23 -30 0 -30C23 -30 44 -16 62 16" stroke="#FFD700" stroke-opacity="0.34" stroke-width="2.5"/>
+      <circle cx="-36" cy="-86" r="8" fill="#FFD700" fill-opacity="0.6"/>
+      <circle cx="36" cy="-86" r="8" fill="#FFD700" fill-opacity="0.6"/>
+      <path d="M-62 112H62" stroke="#FFD700" stroke-opacity="0.34" stroke-width="2"/>
+      <path d="M-70 142H70" stroke="#FFD700" stroke-opacity="0.24" stroke-width="2"/>
+    </g>
+    <rect x="-178" y="-202" width="356" height="26" rx="13" fill="url(#scanline)" opacity="0.95"/>
+  </g>
+
+  <g transform="translate(64 606)" filter="url(#windowShadow)">
+    <rect width="420" height="222" fill="#050505" fill-opacity="0.8" stroke="#8A6D3B" stroke-width="2"/>
+    <rect width="420" height="36" fill="#FFD700" fill-opacity="0.2" stroke="#8A6D3B" stroke-width="2"/>
+    <text x="18" y="24" fill="#FFD700" font-size="14" font-weight="700" letter-spacing="3" font-family="Fira Code, monospace">SYS_LOG</text>
+    <circle cx="380" cy="18" r="5" fill="#FFD700" fill-opacity="0.9"/>
+    <circle cx="398" cy="18" r="5" fill="#8A6D3B"/>
+    <text x="20" y="76" fill="#FFD700" font-size="16" font-family="Fira Code, monospace">&gt; boot sequence initialized...</text>
+    <text x="20" y="106" fill="#FFD700" font-size="16" font-family="Fira Code, monospace">&gt; loading agent kernel v2.4.7</text>
+    <text x="20" y="136" fill="#FFD700" font-size="16" font-family="Fira Code, monospace">&gt; syncing cyber-fi relay nodes</text>
+    <text x="20" y="166" fill="#FFD700" font-size="16" font-family="Fira Code, monospace">&gt; identity signature verified</text>
+    <text x="20" y="196" fill="#FFD700" font-size="16" font-family="Fira Code, monospace">&gt; JOEAGENT online_</text>
+  </g>
+
+  <g transform="translate(1012 650)" filter="url(#windowShadow)">
+    <rect width="340" height="178" fill="#050505" fill-opacity="0.8" stroke="#8A6D3B" stroke-width="2"/>
+    <rect width="340" height="36" fill="#FFD700" fill-opacity="0.2" stroke="#8A6D3B" stroke-width="2"/>
+    <text x="18" y="24" fill="#FFD700" font-size="14" font-weight="700" letter-spacing="3" font-family="Fira Code, monospace">ACTION</text>
+    <circle cx="300" cy="18" r="5" fill="#FFD700" fill-opacity="0.9"/>
+    <circle cx="318" cy="18" r="5" fill="#8A6D3B"/>
+    <rect x="20" y="76" width="300" height="66" fill="#050505" stroke="#FFD700" stroke-width="2"/>
+    <text x="52" y="116" fill="#FFD700" font-size="21" font-weight="800" letter-spacing="4" font-family="Orbitron, Arial, sans-serif">ACTIVATE AGENT</text>
+  </g>
+
+  <rect x="0" y="0" width="1440" height="900" fill="url(#scanline)" opacity="0.08"/>
+</svg>
