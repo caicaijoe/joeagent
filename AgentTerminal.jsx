@@ -6,8 +6,6 @@ import useAgentSound from "./hooks/useAgentSound";
 import TypewriterText from "./TypewriterText";
 
 const FALLBACK_REPLY = "[SYSTEM_ERROR] NEURAL LINK DISCONNECTED.";
-const DEFAULT_PROVIDER = "qwen";
-const DEFAULT_PROVIDER_LABEL = "QWEN";
 const ALPHA_COMMAND = "/ALPHA";
 const ALPHA_LOCKED_REPLY =
   "> ERROR: OPERATOR NOT INITIALIZED. ACTIVATE AI_LINK TO PROCEED.";
@@ -63,6 +61,8 @@ export default function AgentTerminal({
   isAgentProcessing,
   isAuthorized = false,
   setIsAgentProcessing,
+  activeProvider = "gpt",
+  onProviderChange = () => {},
 }) {
   const { playEnter, playError, playConfirm } = useAgentSound();
   const [history, setHistory] = useState(() => createInitialHistory());
@@ -186,7 +186,7 @@ export default function AgentTerminal({
         },
         body: JSON.stringify({
           messages: requestMessages,
-          provider: DEFAULT_PROVIDER,
+          provider: activeProvider,
         }),
       });
 
@@ -240,16 +240,8 @@ export default function AgentTerminal({
 
   return (
     <div className="flex h-full min-h-[300px] w-full flex-col overflow-hidden border border-agent-gold-dark bg-agent-black/80 backdrop-blur-md sm:min-h-[360px]">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-agent-gold-dark/60 bg-black/70 px-4 py-1.5 font-mono text-[9px] uppercase tracking-[0.28em] text-agent-gold-dark">
-        <span>[ MODEL RELAY PRIORITY ]</span>
-        <div className="flex items-center gap-1.5">
-          <span className="border border-agent-gold/30 px-1.5 py-0.5 text-[#FFD700] [text-shadow:0_0_8px_rgba(255,215,0,0.95),0_0_18px_rgba(255,215,0,0.42)]">
-            [{DEFAULT_PROVIDER_LABEL}]
-          </span>
-          <span className="border border-agent-gold-dark/30 px-1.5 py-0.5 text-agent-gold-dark/60">
-            [GPT]
-          </span>
-        </div>
+      <div className="border-b border-agent-gold-dark/60 bg-black/70 px-4 py-1.5 font-mono text-[9px] uppercase tracking-[0.28em] text-agent-gold-dark">
+        <span>[ NEURAL_LINK_FREQUENCY ]</span>
       </div>
 
       <div className="flex items-center justify-between gap-3 border-b border-agent-gold-dark/70 bg-agent-gold/5 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.24em] text-agent-gold-dark">
