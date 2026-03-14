@@ -1,4 +1,4 @@
-﻿"use client";
+﻿﻿"use client";
 
 import {
   animate,
@@ -66,6 +66,7 @@ const logLines = [
   "> JOEAGENT online_",
 ];
 const MOBILE_RENDER_BREAKPOINT = 768;
+const MOBILE_MODEL_PATHS = ["/models/joeagent_mobile.glb", "/joeagent_mobile.glb"];
 
 const idleGlow = [
   "drop-shadow(0 0 18px rgba(255,215,0,0.18)) drop-shadow(0 0 42px rgba(255,215,0,0.14)) drop-shadow(0 18px 48px rgba(0,0,0,0.74))",
@@ -170,6 +171,7 @@ export default function HomePage() {
   const [linkStatus, setLinkStatus] = useState("idle");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMobileRenderTier, setIsMobileRenderTier] = useState(false);
+  const [hasDedicatedMobileModel, setHasDedicatedMobileModel] = useState(false);
   const [isMobileSafeMode, setIsMobileSafeMode] = useState(false);
 
   const goldLightRef = useRef(null);
@@ -261,6 +263,57 @@ export default function HomePage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!useMobileHeroTier) {
+      setHasDedicatedMobileModel(true);
+      return;
+    }
+
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const verifyMobileModel = async () => {
+      for (const path of MOBILE_MODEL_PATHS) {
+        try {
+          const response = await fetch(path, {
+            method: "HEAD",
+            cache: "no-store",
+            signal: controller.signal,
+          });
+
+          if (response.ok) {
+            if (isMounted) {
+              setHasDedicatedMobileModel(true);
+            }
+            return;
+          }
+        } catch (error) {
+          if (controller.signal.aborted) {
+            return;
+          }
+        }
+      }
+
+      if (isMounted) {
+        console.warn(
+          "JOEAGENT mobile render tier disabled: /public/models/joeagent_mobile.glb was not found."
+        );
+        setHasDedicatedMobileModel(false);
+      }
+    };
+
+    verifyMobileModel();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [useMobileHeroTier]);
 
   useEffect(() => {
     if (typeof window === "undefined" || isMobileSafeMode) {
@@ -415,6 +468,8 @@ export default function HomePage() {
 
   const renderHeroShell = (isMobileLayout) => {
     const useLowCostMobileTier = isMobileLayout && useMobileHeroTier;
+    const shouldRenderHero3D =
+      canRender3D && (!useLowCostMobileTier || hasDedicatedMobileModel);
 
     return (
       <motion.div
@@ -494,7 +549,7 @@ export default function HomePage() {
             },
           }}
         >
-          {canRender3D ? (
+          {shouldRenderHero3D ? (
             <HeroRenderBoundary
               fallback={
                 <div className="relative flex h-full w-full items-center justify-center">
@@ -508,7 +563,7 @@ export default function HomePage() {
                       isMobileLayout ? "w-[min(84vw,24rem)]" : "w-[min(74vw,32rem)]"
                     } ${
                       useLowCostMobileTier
-                        ? "brightness-[1.08] contrast-[1.04] saturate-[1.08]"
+                        ? "brightness-[1.18] contrast-[1.1] saturate-[1.16]"
                         : isMobileLayout
                           ? "brightness-[1.16] contrast-[1.08] saturate-[1.04]"
                           : ""
@@ -613,7 +668,7 @@ export default function HomePage() {
                     goldLightRef={goldLightRef}
                     fillLightRef={fillLightRef}
                     isMobile={isMobileLayout}
-                    useMobileTier={useLowCostMobileTier}
+                    useMobileTier={useLowCostMobileTier && hasDedicatedMobileModel}
                   />
                 </Suspense>
               </Canvas>
@@ -630,7 +685,7 @@ export default function HomePage() {
                   isMobileLayout ? "w-[min(84vw,24rem)]" : "w-[min(74vw,32rem)]"
                 } ${
                   useLowCostMobileTier
-                    ? "brightness-[1.08] contrast-[1.04] saturate-[1.08]"
+                    ? "brightness-[1.18] contrast-[1.1] saturate-[1.16]"
                     : isMobileLayout
                       ? "brightness-[1.16] contrast-[1.08] saturate-[1.04]"
                       : ""
@@ -828,4 +883,5 @@ export default function HomePage() {
     </>
   );
 }
+
 
