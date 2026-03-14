@@ -51,6 +51,16 @@ function tuneMaterial(material) {
     material.emissiveIntensity = Math.max(material.emissiveIntensity ?? 0, 0.22);
   }
 
+  if (material.map) {
+    material.map.colorSpace = THREE.SRGBColorSpace;
+    material.map.needsUpdate = true;
+  }
+
+  if (material.emissiveMap) {
+    material.emissiveMap.colorSpace = THREE.SRGBColorSpace;
+    material.emissiveMap.needsUpdate = true;
+  }
+
   material.needsUpdate = true;
 }
 
@@ -68,7 +78,25 @@ function tuneMobileMaterial(material) {
   }
 
   if ("emissiveIntensity" in material) {
-    material.emissiveIntensity = Math.max(material.emissiveIntensity ?? 0, 0.34);
+    material.emissiveIntensity = Math.max(material.emissiveIntensity ?? 0, 0.56);
+  }
+
+  if ("envMapIntensity" in material) {
+    material.envMapIntensity = 0.08;
+  }
+
+  if (material.color) {
+    material.color.offsetHSL(0, 0.04, 0.1);
+  }
+
+  if (material.map) {
+    material.map.colorSpace = THREE.SRGBColorSpace;
+    material.map.needsUpdate = true;
+  }
+
+  if (material.emissiveMap) {
+    material.emissiveMap.colorSpace = THREE.SRGBColorSpace;
+    material.emissiveMap.needsUpdate = true;
   }
 
   material.needsUpdate = true;
