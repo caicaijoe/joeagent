@@ -61,8 +61,6 @@ export default function AgentTerminal({
   isAgentProcessing,
   isAuthorized = false,
   setIsAgentProcessing,
-  activeProvider = "qwen",
-  onProviderChange = () => {},
 }) {
   const { playEnter, playError, playConfirm } = useAgentSound();
   const [history, setHistory] = useState(() => createInitialHistory());
@@ -186,7 +184,6 @@ export default function AgentTerminal({
         },
         body: JSON.stringify({
           messages: requestMessages,
-          provider: activeProvider,
         }),
       });
 
