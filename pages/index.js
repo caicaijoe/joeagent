@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   animate,
@@ -65,6 +65,7 @@ const logLines = [
   "> identity signature verified",
   "> JOEAGENT online_",
 ];
+const MOBILE_RENDER_BREAKPOINT = 768;
 
 const idleGlow = [
   "drop-shadow(0 0 18px rgba(255,215,0,0.18)) drop-shadow(0 0 42px rgba(255,215,0,0.14)) drop-shadow(0 18px 48px rgba(0,0,0,0.74))",
@@ -168,6 +169,7 @@ export default function HomePage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [linkStatus, setLinkStatus] = useState("idle");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [isMobileRenderTier, setIsMobileRenderTier] = useState(false);
   const [isMobileSafeMode, setIsMobileSafeMode] = useState(false);
 
   const goldLightRef = useRef(null);
@@ -214,6 +216,7 @@ export default function HomePage() {
     : isAgentProcessing
       ? "processing"
       : "idle";
+  const useMobileHeroTier = isMobileRenderTier || isMobileSafeMode;
 
   useEffect(() => {
     const center = getViewportCenter();
@@ -225,6 +228,7 @@ export default function HomePage() {
   useEffect(() => {
     const updateMobileSafeMode = () => {
       setIsMobileViewport(window.innerWidth < 1024);
+      setIsMobileRenderTier(window.innerWidth < MOBILE_RENDER_BREAKPOINT);
       setIsMobileSafeMode(shouldUseMobileSafeMode());
     };
 
@@ -409,232 +413,275 @@ export default function HomePage() {
     </button>
   );
 
-  const renderHeroShell = (isMobileLayout) => (
-    <motion.div
-      className={
-        isMobileLayout
-          ? "relative h-[min(96vw,28rem)] w-[min(96vw,28rem)] max-h-[68svh] max-w-[96vw]"
-          : "relative h-[min(82vw,46rem)] w-[min(82vw,46rem)] max-h-[80vh] max-w-[84vw]"
-      }
-      animate={
-        visualState === "authenticating"
-          ? authenticationShellAnimation
-          : visualState === "processing"
-            ? processingShellAnimation
-            : idleShellAnimation
-      }
-      transition={{
-        duration:
-          visualState === "authenticating"
-            ? 0.16
-            : visualState === "processing"
-              ? 0.28
-              : 8.4,
-        repeat: Number.POSITIVE_INFINITY,
-        ease: visualState === "idle" ? "easeInOut" : "linear",
-      }}
-      style={{
-        x: jitterX,
-        y: jitterY,
-        willChange: "transform, filter",
-      }}
-    >
+  const renderHeroShell = (isMobileLayout) => {
+    const useLowCostMobileTier = isMobileLayout && useMobileHeroTier;
+
+    return (
       <motion.div
-        className={`absolute rounded-full blur-3xl ${
+        className={
           isMobileLayout
-            ? "inset-[-16%] bg-[radial-gradient(circle,rgba(255,215,0,0.38)_0%,rgba(255,235,160,0.18)_24%,rgba(255,215,0,0.08)_48%,transparent_76%)]"
-            : "inset-[-12%] bg-[radial-gradient(circle,rgba(255,215,0,0.28)_0%,rgba(255,215,0,0.12)_26%,rgba(255,215,0,0.04)_50%,transparent_72%)]"
-        }`}
+            ? "relative h-[min(96vw,28rem)] w-[min(96vw,28rem)] max-h-[68svh] max-w-[96vw]"
+            : "relative h-[min(82vw,46rem)] w-[min(82vw,46rem)] max-h-[80vh] max-w-[84vw]"
+        }
         animate={
           visualState === "authenticating"
-            ? authenticationFieldAnimation
+            ? authenticationShellAnimation
             : visualState === "processing"
-              ? processingFieldAnimation
-              : idleFieldAnimation
+              ? processingShellAnimation
+              : idleShellAnimation
         }
         transition={{
           duration:
             visualState === "authenticating"
-              ? 0.34
+              ? 0.16
               : visualState === "processing"
-                ? 0.54
-                : 6.8,
+                ? 0.28
+                : 8.4,
           repeat: Number.POSITIVE_INFINITY,
           ease: visualState === "idle" ? "easeInOut" : "linear",
         }}
-      />
-
-      <motion.div
-        className="joeagent-core relative h-full w-full"
-        animate={{
-          filter:
-            visualState === "authenticating"
-              ? authenticationGlow
-              : visualState === "processing"
-                ? processingGlow
-                : idleGlow,
+        style={{
+          x: jitterX,
+          y: jitterY,
+          willChange: "transform, filter",
         }}
-        transition={{
-          filter: {
+      >
+        <motion.div
+          className={`absolute rounded-full blur-3xl ${
+            isMobileLayout
+              ? "inset-[-16%] bg-[radial-gradient(circle,rgba(255,215,0,0.38)_0%,rgba(255,235,160,0.18)_24%,rgba(255,215,0,0.08)_48%,transparent_76%)]"
+              : "inset-[-12%] bg-[radial-gradient(circle,rgba(255,215,0,0.28)_0%,rgba(255,215,0,0.12)_26%,rgba(255,215,0,0.04)_50%,transparent_72%)]"
+          }`}
+          animate={
+            visualState === "authenticating"
+              ? authenticationFieldAnimation
+              : visualState === "processing"
+                ? processingFieldAnimation
+                : idleFieldAnimation
+          }
+          transition={{
             duration:
               visualState === "authenticating"
-                ? 0.32
+                ? 0.34
                 : visualState === "processing"
-                  ? 0.52
+                  ? 0.54
                   : 6.8,
             repeat: Number.POSITIVE_INFINITY,
             ease: visualState === "idle" ? "easeInOut" : "linear",
-          },
-        }}
-      >
-        {canRender3D ? (
-          <HeroRenderBoundary
-            fallback={
-              <div className="relative flex h-full w-full items-center justify-center">
-                <motion.img
-                  src="/images/hero_robot_high_res_v2.png"
-                  alt="JOEAGENT CORE"
-                  width={700}
-                  height={700}
-                  draggable="false"
-                  className={`h-auto select-none object-contain ${
-                    isMobileLayout ? "w-[min(84vw,24rem)]" : "w-[min(74vw,32rem)]"
-                  } ${isMobileLayout ? "brightness-[1.16] contrast-[1.08] saturate-[1.04]" : ""}`}
-                  animate={{
-                    scale:
-                      visualState === "authenticating"
-                        ? [1, 1.03, 0.99, 1.02, 1]
-                        : visualState === "processing"
-                          ? [1, 1.012, 0.996, 1.008, 1]
-                          : [1, 1.01, 1],
-                  }}
-                  transition={{
-                    duration:
-                      visualState === "authenticating"
-                        ? 0.42
-                        : visualState === "processing"
-                          ? 0.6
-                          : 6.8,
-                    repeat: Number.POSITIVE_INFINITY,
-                    ease: visualState === "idle" ? "easeInOut" : "linear",
-                  }}
-                />
-              </div>
-            }
-          >
-            <Canvas
-              dpr={isMobileLayout || isMobileSafeMode ? [1, 1.35] : [1, 2]}
-              gl={{ alpha: true, antialias: !(isMobileLayout || isMobileSafeMode) }}
-              onCreated={({ gl }) => {
-                gl.outputColorSpace = THREE.SRGBColorSpace;
-                gl.toneMapping = THREE.ACESFilmicToneMapping;
-                gl.toneMappingExposure = isMobileLayout ? 1.42 : 1.08;
-              }}
+          }}
+        />
+
+        <motion.div
+          className="joeagent-core relative h-full w-full"
+          animate={{
+            filter:
+              visualState === "authenticating"
+                ? authenticationGlow
+                : visualState === "processing"
+                  ? processingGlow
+                  : idleGlow,
+          }}
+          transition={{
+            filter: {
+              duration:
+                visualState === "authenticating"
+                  ? 0.32
+                  : visualState === "processing"
+                    ? 0.52
+                    : 6.8,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: visualState === "idle" ? "easeInOut" : "linear",
+            },
+          }}
+        >
+          {canRender3D ? (
+            <HeroRenderBoundary
+              fallback={
+                <div className="relative flex h-full w-full items-center justify-center">
+                  <motion.img
+                    src="/images/hero_robot_high_res_v2.png"
+                    alt="JOEAGENT CORE"
+                    width={700}
+                    height={700}
+                    draggable="false"
+                    className={`h-auto select-none object-contain ${
+                      isMobileLayout ? "w-[min(84vw,24rem)]" : "w-[min(74vw,32rem)]"
+                    } ${
+                      useLowCostMobileTier
+                        ? "brightness-[1.08] contrast-[1.04] saturate-[1.08]"
+                        : isMobileLayout
+                          ? "brightness-[1.16] contrast-[1.08] saturate-[1.04]"
+                          : ""
+                    }`}
+                    animate={{
+                      scale:
+                        visualState === "authenticating"
+                          ? [1, 1.03, 0.99, 1.02, 1]
+                          : visualState === "processing"
+                            ? [1, 1.012, 0.996, 1.008, 1]
+                            : [1, 1.01, 1],
+                    }}
+                    transition={{
+                      duration:
+                        visualState === "authenticating"
+                          ? 0.42
+                          : visualState === "processing"
+                            ? 0.6
+                            : 6.8,
+                      repeat: Number.POSITIVE_INFINITY,
+                      ease: visualState === "idle" ? "easeInOut" : "linear",
+                    }}
+                  />
+                </div>
+              }
             >
-              <PerspectiveCamera
-                makeDefault
-                fov={isMobileLayout ? 33.5 : 30.5}
-                position={isMobileLayout ? [0, 0.08, 8.25] : [0, 0.04, 7.6]}
-              />
-              <ambientLight intensity={isMobileLayout ? 1.42 : 0.78} color="#ffffff" />
-              <hemisphereLight
-                skyColor="#f8fbff"
-                groundColor="#090909"
-                intensity={isMobileLayout ? 0.94 : 0.42}
-              />
-              <pointLight
-                ref={goldLightRef}
-                position={[3.1, 2.6, 5.8]}
-                intensity={isMobileLayout ? 1.88 : 1.05}
-                color="#FFD700"
-              />
-              <pointLight
-                ref={fillLightRef}
-                position={[-2.2, 2.3, 5.9]}
-                intensity={isMobileLayout ? 1.84 : 0.98}
-                color="#ffffff"
-              />
-              <directionalLight
-                position={[0.2, 1.5, 6.8]}
-                intensity={isMobileLayout ? 1.72 : 0.94}
-                color="#ffffff"
-              />
-              {isMobileLayout && (
-                <directionalLight
-                  position={[0, -0.4, 4.8]}
-                  intensity={1.08}
-                  color="#ffffff"
+              <Canvas
+                dpr={
+                  useLowCostMobileTier
+                    ? [1, 1.2]
+                    : isMobileLayout || isMobileSafeMode
+                      ? [1, 1.35]
+                      : [1, 2]
+                }
+                gl={{
+                  alpha: true,
+                  antialias: !useLowCostMobileTier && !(isMobileLayout || isMobileSafeMode),
+                }}
+                shadows={!useLowCostMobileTier}
+                onCreated={({ gl }) => {
+                  gl.outputColorSpace = THREE.SRGBColorSpace;
+                  gl.toneMapping = useLowCostMobileTier
+                    ? THREE.NoToneMapping
+                    : THREE.ACESFilmicToneMapping;
+                  gl.toneMappingExposure = useLowCostMobileTier ? 1 : 1.08;
+                }}
+              >
+                <PerspectiveCamera
+                  makeDefault
+                  fov={isMobileLayout ? 33.5 : 30.5}
+                  position={isMobileLayout ? [0, 0.08, 8.25] : [0, 0.04, 7.6]}
                 />
-              )}
 
-              <Suspense fallback={null}>
-                <AgentCore3D
-                  mousePos={mousePos}
-                  visualState={visualState}
-                  goldLightRef={goldLightRef}
-                  fillLightRef={fillLightRef}
-                  isMobile={isMobileLayout}
-                />
-              </Suspense>
-            </Canvas>
-          </HeroRenderBoundary>
-        ) : (
-          <div className="relative flex h-full w-full items-center justify-center">
-            <motion.img
-              src="/images/hero_robot_high_res_v2.png"
-              alt="JOEAGENT CORE"
-              width={700}
-              height={700}
-              draggable="false"
-              className={`h-auto select-none object-contain ${
-                isMobileLayout ? "w-[min(84vw,24rem)]" : "w-[min(74vw,32rem)]"
-              } ${isMobileLayout ? "brightness-[1.16] contrast-[1.08] saturate-[1.04]" : ""}`}
-              animate={{
-                scale:
-                  visualState === "authenticating"
-                    ? [1, 1.03, 0.99, 1.02, 1]
-                    : visualState === "processing"
-                      ? [1, 1.012, 0.996, 1.008, 1]
-                      : [1, 1.01, 1],
-              }}
-              transition={{
-                duration:
-                  visualState === "authenticating"
-                    ? 0.42
-                    : visualState === "processing"
-                      ? 0.6
-                      : 6.8,
-                repeat: Number.POSITIVE_INFINITY,
-                ease: visualState === "idle" ? "easeInOut" : "linear",
-              }}
-            />
-          </div>
-        )}
+                {useLowCostMobileTier ? (
+                  <>
+                    <ambientLight intensity={1.2} color="#ffffff" />
+                    <directionalLight
+                      position={[0.45, 1.2, 5.4]}
+                      intensity={1.65}
+                      color="#ffffff"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <ambientLight intensity={isMobileLayout ? 1.42 : 0.78} color="#ffffff" />
+                    <hemisphereLight
+                      skyColor="#f8fbff"
+                      groundColor="#090909"
+                      intensity={isMobileLayout ? 0.94 : 0.42}
+                    />
+                    <pointLight
+                      ref={goldLightRef}
+                      position={[3.1, 2.6, 5.8]}
+                      intensity={isMobileLayout ? 1.88 : 1.05}
+                      color="#FFD700"
+                    />
+                    <pointLight
+                      ref={fillLightRef}
+                      position={[-2.2, 2.3, 5.9]}
+                      intensity={isMobileLayout ? 1.84 : 0.98}
+                      color="#ffffff"
+                    />
+                    <directionalLight
+                      position={[0.2, 1.5, 6.8]}
+                      intensity={isMobileLayout ? 1.72 : 0.94}
+                      color="#ffffff"
+                    />
+                    {isMobileLayout && (
+                      <directionalLight
+                        position={[0, -0.4, 4.8]}
+                        intensity={1.08}
+                        color="#ffffff"
+                      />
+                    )}
+                  </>
+                )}
+
+                <Suspense fallback={null}>
+                  <AgentCore3D
+                    mousePos={mousePos}
+                    visualState={visualState}
+                    goldLightRef={goldLightRef}
+                    fillLightRef={fillLightRef}
+                    isMobile={isMobileLayout}
+                    useMobileTier={useLowCostMobileTier}
+                  />
+                </Suspense>
+              </Canvas>
+            </HeroRenderBoundary>
+          ) : (
+            <div className="relative flex h-full w-full items-center justify-center">
+              <motion.img
+                src="/images/hero_robot_high_res_v2.png"
+                alt="JOEAGENT CORE"
+                width={700}
+                height={700}
+                draggable="false"
+                className={`h-auto select-none object-contain ${
+                  isMobileLayout ? "w-[min(84vw,24rem)]" : "w-[min(74vw,32rem)]"
+                } ${
+                  useLowCostMobileTier
+                    ? "brightness-[1.08] contrast-[1.04] saturate-[1.08]"
+                    : isMobileLayout
+                      ? "brightness-[1.16] contrast-[1.08] saturate-[1.04]"
+                      : ""
+                }`}
+                animate={{
+                  scale:
+                    visualState === "authenticating"
+                      ? [1, 1.03, 0.99, 1.02, 1]
+                      : visualState === "processing"
+                        ? [1, 1.012, 0.996, 1.008, 1]
+                        : [1, 1.01, 1],
+                }}
+                transition={{
+                  duration:
+                    visualState === "authenticating"
+                      ? 0.42
+                      : visualState === "processing"
+                        ? 0.6
+                        : 6.8,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: visualState === "idle" ? "easeInOut" : "linear",
+                }}
+              />
+            </div>
+          )}
+        </motion.div>
+
+        <motion.div
+          className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.12),transparent_58%)]"
+          animate={{
+            opacity:
+              visualState === "authenticating"
+                ? [0.3, 0.78, 0.46, 0.92, 0.3]
+                : visualState === "processing"
+                  ? [0.16, 0.48, 0.22, 0.58, 0.16]
+                  : [0.04, 0.1, 0.04],
+          }}
+          transition={{
+            duration:
+              visualState === "authenticating"
+                ? 0.34
+                : visualState === "processing"
+                  ? 0.54
+                  : 7.6,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: visualState === "idle" ? "easeInOut" : "linear",
+          }}
+        />
       </motion.div>
-
-      <motion.div
-        className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.12),transparent_58%)]"
-        animate={{
-          opacity:
-            visualState === "authenticating"
-              ? [0.3, 0.78, 0.46, 0.92, 0.3]
-              : visualState === "processing"
-                ? [0.16, 0.48, 0.22, 0.58, 0.16]
-                : [0.04, 0.1, 0.04],
-        }}
-        transition={{
-          duration:
-            visualState === "authenticating"
-              ? 0.34
-              : visualState === "processing"
-                ? 0.54
-                : 7.6,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: visualState === "idle" ? "easeInOut" : "linear",
-        }}
-      />
-    </motion.div>
-  );
+    );
+  };
 
   const mainClassName = isMobileViewport
     ? "relative min-h-screen w-screen overflow-x-hidden overflow-y-auto bg-agent-black"
@@ -781,3 +828,4 @@ export default function HomePage() {
     </>
   );
 }
+
