@@ -173,6 +173,22 @@
   }
 }
 
+@keyframes mobile-agent-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(0.988);
+  }
+
+  50% {
+    transform: translateY(-8px) scale(1.014);
+  }
+}
+
+.mobile-agent-breathe {
+  animation: mobile-agent-breathe 7.8s ease-in-out infinite;
+  will-change: transform;
+}
+
 @layer utilities {
   .font-title {
     font-family: "Orbitron", sans-serif;
