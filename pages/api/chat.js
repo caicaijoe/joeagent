@@ -130,22 +130,24 @@ const normalizeProviderName = (value) => {
     return "qwen";
   }
 
-  if (normalized === "openai") {
+  if (normalized === "openai" || normalized === "gpt") {
     return "openai";
   }
 
   return "";
 };
 
-const buildProviderOrder = () => {
-  const preferredProvider = normalizeProviderName(
-    getFirstEnvValue(AI_PROVIDER_ENV_NAMES)
-  );
+const buildProviderOrder = (requestedProvider = "") => {
+  const explicitProvider = normalizeProviderName(requestedProvider);
 
-  return preferredProvider === "qwen" ? ["qwen", "openai"] : ["openai", "qwen"];
+  if (explicitProvider) {
+    return [explicitProvider];
+  }
+
+  return ["qwen", "openai"];
 };
 
-const getAIProviderConfigs = () => {
+const getAIProviderConfigs = (requestedProvider = "") => {
   const providers = {
     openai: {
       name: "openai",
@@ -163,7 +165,7 @@ const getAIProviderConfigs = () => {
     },
   };
 
-  return buildProviderOrder()
+  return buildProviderOrder(requestedProvider)
     .map((providerName) => providers[providerName])
     .filter((provider) => provider && provider.apiKey);
 };
@@ -302,6 +304,18 @@ const buildProviderFailureReply = (failures) => {
   ].join("\n");
 };
 
+const buildExplicitProviderMissingReply = (providerName) => {
+  if (providerName === "qwen") {
+    return "QWEN RELAY OFFLINE. PROVIDE QWEN_API_KEY OR DASHSCOPE_API_KEY TO RESTORE JOEAGENT INFERENCE.";
+  }
+
+  if (providerName === "openai") {
+    return "OPENAI RELAY OFFLINE. PROVIDE OPENAI_API_KEY TO RESTORE JOEAGENT INFERENCE.";
+  }
+
+  return AI_OFFLINE_REPLY;
+};
+
 async function fetchJson(url, timeoutMs = 8000) {
   const response = await fetch(url, {
     method: "GET",
@@ -412,10 +426,18 @@ const buildPriceReport = (marketData) =>
     "> FOCUS: MERCHANT MOE LIQUIDITY AND MANTLE FLOW.",
   ].join("\n");
 
-async function generateAIReply(messages) {
-  const providers = getAIProviderConfigs();
+async function generateAIReply(messages, requestedProvider = "") {
+  const explicitProvider = normalizeProviderName(requestedProvider);
+  const providers = getAIProviderConfigs(requestedProvider);
 
   if (providers.length === 0) {
+    if (explicitProvider) {
+      return {
+        ok: false,
+        reply: buildExplicitProviderMissingReply(explicitProvider),
+      };
+    }
+
     console.warn(
       "JOEAGENT AI CONFIG WARNING: NO API KEY FOUND.",
       OPENAI_API_KEY_ENV_NAMES,
@@ -512,7 +534,11 @@ export default async function handler(req, res) {
       return res.status(200).json({ reply: HELP_REPLY });
     }
 
-    const aiResult = await generateAIReply(messages);
+    const requestedProvider =
+      normalizeProviderName(req.body?.provider) ||
+      normalizeProviderName(req.headers["x-provider"]);
+
+    const aiResult = await generateAIReply(messages, requestedProvider);
 
     return res.status(200).json({ reply: aiResult.reply });
   } catch (error) {
