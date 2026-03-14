@@ -67,8 +67,8 @@ const logLines = [
 ];
 const DESKTOP_HERO_IMAGE_PATH = "/images/hero_robot_high_res_v2.png";
 const MOBILE_HERO_IMAGE_PATH = "/models/joeagent_mobile.png";
+const DEFAULT_MODEL_PROVIDER = "qwen";
 const MOBILE_RENDER_BREAKPOINT = 768;
-const MOBILE_MODEL_PATHS = ["/models/joeagent_mobile.glb", "/joeagent_mobile.glb"];
 
 const idleGlow = [
   "drop-shadow(0 0 18px rgba(255,215,0,0.18)) drop-shadow(0 0 42px rgba(255,215,0,0.14)) drop-shadow(0 18px 48px rgba(0,0,0,0.74))",
@@ -171,14 +171,16 @@ export default function HomePage() {
   const [isAgentProcessing, setIsAgentProcessing] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [linkStatus, setLinkStatus] = useState("idle");
+  const [activeProvider, setActiveProvider] = useState(DEFAULT_MODEL_PROVIDER);
+  const [isModelResyncing, setIsModelResyncing] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMobileRenderTier, setIsMobileRenderTier] = useState(false);
-  const [hasDedicatedMobileModel, setHasDedicatedMobileModel] = useState(false);
   const [isMobileSafeMode, setIsMobileSafeMode] = useState(false);
 
   const goldLightRef = useRef(null);
   const fillLightRef = useRef(null);
   const linkTimeoutRef = useRef(null);
+  const modelResyncTimeoutRef = useRef(null);
   const prevProcessingRef = useRef(false);
 
   const mouseX = useMotionValue(0);
@@ -263,59 +265,12 @@ export default function HomePage() {
       if (linkTimeoutRef.current) {
         window.clearTimeout(linkTimeoutRef.current);
       }
+
+      if (modelResyncTimeoutRef.current) {
+        window.clearTimeout(modelResyncTimeoutRef.current);
+      }
     };
   }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    if (!useMobileHeroTier) {
-      setHasDedicatedMobileModel(true);
-      return;
-    }
-
-    let isMounted = true;
-    const controller = new AbortController();
-
-    const verifyMobileModel = async () => {
-      for (const path of MOBILE_MODEL_PATHS) {
-        try {
-          const response = await fetch(path, {
-            method: "HEAD",
-            cache: "no-store",
-            signal: controller.signal,
-          });
-
-          if (response.ok) {
-            if (isMounted) {
-              setHasDedicatedMobileModel(true);
-            }
-            return;
-          }
-        } catch (error) {
-          if (controller.signal.aborted) {
-            return;
-          }
-        }
-      }
-
-      if (isMounted) {
-        console.warn(
-          "JOEAGENT mobile render tier disabled: /public/models/joeagent_mobile.glb was not found."
-        );
-        setHasDedicatedMobileModel(false);
-      }
-    };
-
-    verifyMobileModel();
-
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
-  }, [useMobileHeroTier]);
 
   useEffect(() => {
     if (typeof window === "undefined" || isMobileSafeMode) {
@@ -418,6 +373,20 @@ export default function HomePage() {
     }, 1500);
   };
 
+  const handleProviderChange = (provider) => {
+    setActiveProvider(provider);
+    setIsModelResyncing(true);
+
+    if (modelResyncTimeoutRef.current) {
+      window.clearTimeout(modelResyncTimeoutRef.current);
+    }
+
+    modelResyncTimeoutRef.current = window.setTimeout(() => {
+      setIsModelResyncing(false);
+      modelResyncTimeoutRef.current = null;
+    }, 500);
+  };
+
   const linkButtonLabel =
     linkStatus === "granted"
       ? "[ ACCESS GRANTED ]"
@@ -514,173 +483,178 @@ export default function HomePage() {
     </div>
   );
 
-  const renderHeroShell = (isMobileLayout) => {
-    const shouldRenderDesktop3D = !isMobileLayout && canRender3D;
+  const renderHeroShell = (isMobileLayout) => (
+    (() => {
+      const shouldRenderDesktop3D = !isMobileLayout && canRender3D;
 
-    return (
+      return (
+    <motion.div
+      className={
+        isMobileLayout
+          ? "relative h-[min(96vw,28rem)] w-[min(96vw,28rem)] max-h-[68svh] max-w-[96vw]"
+          : "relative h-[min(82vw,46rem)] w-[min(82vw,46rem)] max-h-[80vh] max-w-[84vw]"
+      }
+      animate={
+        visualState === "authenticating"
+          ? authenticationShellAnimation
+          : visualState === "processing"
+            ? processingShellAnimation
+            : idleShellAnimation
+      }
+      transition={{
+        duration:
+          visualState === "authenticating"
+            ? 0.16
+            : visualState === "processing"
+              ? 0.28
+              : 8.4,
+        repeat: Number.POSITIVE_INFINITY,
+        ease: visualState === "idle" ? "easeInOut" : "linear",
+      }}
+      style={{
+        x: jitterX,
+        y: jitterY,
+        willChange: "transform, filter",
+      }}
+    >
       <motion.div
-        className={
+        className={`absolute rounded-full blur-3xl ${
           isMobileLayout
-            ? "relative h-[min(96vw,28rem)] w-[min(96vw,28rem)] max-h-[68svh] max-w-[96vw]"
-            : "relative h-[min(82vw,46rem)] w-[min(82vw,46rem)] max-h-[80vh] max-w-[84vw]"
-        }
+            ? "inset-[-16%] bg-[radial-gradient(circle,rgba(255,215,0,0.38)_0%,rgba(255,235,160,0.18)_24%,rgba(255,215,0,0.08)_48%,transparent_76%)]"
+            : "inset-[-12%] bg-[radial-gradient(circle,rgba(255,215,0,0.28)_0%,rgba(255,215,0,0.12)_26%,rgba(255,215,0,0.04)_50%,transparent_72%)]"
+        }`}
         animate={
           visualState === "authenticating"
-            ? authenticationShellAnimation
+            ? authenticationFieldAnimation
             : visualState === "processing"
-              ? processingShellAnimation
-              : idleShellAnimation
+              ? processingFieldAnimation
+              : idleFieldAnimation
         }
         transition={{
           duration:
             visualState === "authenticating"
-              ? 0.16
+              ? 0.34
               : visualState === "processing"
-                ? 0.28
-                : 8.4,
+                ? 0.54
+                : 6.8,
           repeat: Number.POSITIVE_INFINITY,
           ease: visualState === "idle" ? "easeInOut" : "linear",
         }}
-        style={{
-          x: jitterX,
-          y: jitterY,
-          willChange: "transform, filter",
-        }}
-      >
-        <motion.div
-          className={`absolute rounded-full blur-3xl ${
-            isMobileLayout
-              ? "inset-[-16%] bg-[radial-gradient(circle,rgba(255,215,0,0.38)_0%,rgba(255,235,160,0.18)_24%,rgba(255,215,0,0.08)_48%,transparent_76%)]"
-              : "inset-[-12%] bg-[radial-gradient(circle,rgba(255,215,0,0.28)_0%,rgba(255,215,0,0.12)_26%,rgba(255,215,0,0.04)_50%,transparent_72%)]"
-          }`}
-          animate={
+      />
+
+      <motion.div
+        className={`joeagent-core relative h-full w-full ${
+          isModelResyncing ? "animate-glitch-burst" : ""
+        }`}
+        animate={{
+          filter:
             visualState === "authenticating"
-              ? authenticationFieldAnimation
+              ? authenticationGlow
               : visualState === "processing"
-                ? processingFieldAnimation
-                : idleFieldAnimation
-          }
-          transition={{
+                ? processingGlow
+                : idleGlow,
+        }}
+        transition={{
+          filter: {
             duration:
               visualState === "authenticating"
-                ? 0.34
+                ? 0.32
                 : visualState === "processing"
-                  ? 0.54
+                  ? 0.52
                   : 6.8,
             repeat: Number.POSITIVE_INFINITY,
             ease: visualState === "idle" ? "easeInOut" : "linear",
-          }}
-        />
-
-        <motion.div
-          className="joeagent-core relative h-full w-full"
-          animate={{
-            filter:
-              visualState === "authenticating"
-                ? authenticationGlow
-                : visualState === "processing"
-                  ? processingGlow
-                  : idleGlow,
-          }}
-          transition={{
-            filter: {
-              duration:
-                visualState === "authenticating"
-                  ? 0.32
-                  : visualState === "processing"
-                    ? 0.52
-                    : 6.8,
-              repeat: Number.POSITIVE_INFINITY,
-              ease: visualState === "idle" ? "easeInOut" : "linear",
-            },
-          }}
-        >
-          {isMobileLayout ? (
-            renderStaticHero(MOBILE_HERO_IMAGE_PATH, true)
-          ) : shouldRenderDesktop3D ? (
-            <HeroRenderBoundary
-              fallback={renderStaticHero(DESKTOP_HERO_IMAGE_PATH, false)}
+          },
+        }}
+      >
+        {isMobileLayout ? (
+          renderStaticHero(MOBILE_HERO_IMAGE_PATH, true)
+        ) : shouldRenderDesktop3D ? (
+          <HeroRenderBoundary
+            fallback={renderStaticHero(DESKTOP_HERO_IMAGE_PATH, false)}
+          >
+            <Canvas
+              dpr={isMobileSafeMode ? [1, 1.35] : [1, 2]}
+              gl={{ alpha: true, antialias: !isMobileSafeMode }}
+              shadows={!isMobileSafeMode}
+              onCreated={({ gl }) => {
+                gl.outputColorSpace = THREE.SRGBColorSpace;
+                gl.toneMapping = THREE.ACESFilmicToneMapping;
+                gl.toneMappingExposure = 1.08;
+              }}
             >
-              <Canvas
-                dpr={isMobileSafeMode ? [1, 1.35] : [1, 2]}
-                gl={{ alpha: true, antialias: !isMobileSafeMode }}
-                shadows={!isMobileSafeMode}
-                onCreated={({ gl }) => {
-                  gl.outputColorSpace = THREE.SRGBColorSpace;
-                  gl.toneMapping = THREE.ACESFilmicToneMapping;
-                  gl.toneMappingExposure = 1.08;
-                }}
-              >
-                <PerspectiveCamera
-                  makeDefault
-                  fov={30.5}
-                  position={[0, 0.04, 7.6]}
-                />
-                <ambientLight intensity={0.78} color="#ffffff" />
-                <hemisphereLight
-                  skyColor="#f8fbff"
-                  groundColor="#090909"
-                  intensity={0.42}
-                />
-                <pointLight
-                  ref={goldLightRef}
-                  position={[3.1, 2.6, 5.8]}
-                  intensity={1.05}
-                  color="#FFD700"
-                />
-                <pointLight
-                  ref={fillLightRef}
-                  position={[-2.2, 2.3, 5.9]}
-                  intensity={0.98}
-                  color="#ffffff"
-                />
-                <directionalLight
-                  position={[0.2, 1.5, 6.8]}
-                  intensity={0.94}
-                  color="#ffffff"
-                />
+              <PerspectiveCamera
+                makeDefault
+                fov={30.5}
+                position={[0, 0.04, 7.6]}
+              />
+              <ambientLight intensity={0.78} color="#ffffff" />
+              <hemisphereLight
+                skyColor="#f8fbff"
+                groundColor="#090909"
+                intensity={0.42}
+              />
+              <pointLight
+                ref={goldLightRef}
+                position={[3.1, 2.6, 5.8]}
+                intensity={1.05}
+                color="#FFD700"
+              />
+              <pointLight
+                ref={fillLightRef}
+                position={[-2.2, 2.3, 5.9]}
+                intensity={0.98}
+                color="#ffffff"
+              />
+              <directionalLight
+                position={[0.2, 1.5, 6.8]}
+                intensity={0.94}
+                color="#ffffff"
+              />
 
-                <Suspense fallback={null}>
-                  <AgentCore3D
-                    mousePos={mousePos}
-                    visualState={visualState}
-                    goldLightRef={goldLightRef}
-                    fillLightRef={fillLightRef}
-                    isMobile={false}
-                    useMobileTier={false}
-                  />
-                </Suspense>
-              </Canvas>
-            </HeroRenderBoundary>
-          ) : (
-            renderStaticHero(DESKTOP_HERO_IMAGE_PATH, false)
-          )}
-        </motion.div>
-
-        <motion.div
-          className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.12),transparent_58%)]"
-          animate={{
-            opacity:
-              visualState === "authenticating"
-                ? [0.3, 0.78, 0.46, 0.92, 0.3]
-                : visualState === "processing"
-                  ? [0.16, 0.48, 0.22, 0.58, 0.16]
-                  : [0.04, 0.1, 0.04],
-          }}
-          transition={{
-            duration:
-              visualState === "authenticating"
-                ? 0.34
-                : visualState === "processing"
-                  ? 0.54
-                  : 7.6,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: visualState === "idle" ? "easeInOut" : "linear",
-          }}
-        />
+              <Suspense fallback={null}>
+                <AgentCore3D
+                  mousePos={mousePos}
+                  visualState={visualState}
+                  goldLightRef={goldLightRef}
+                  fillLightRef={fillLightRef}
+                  isGlitching={isModelResyncing}
+                  isMobile={false}
+                  useMobileTier={false}
+                />
+              </Suspense>
+            </Canvas>
+          </HeroRenderBoundary>
+        ) : (
+          renderStaticHero(DESKTOP_HERO_IMAGE_PATH, false)
+        )}
       </motion.div>
-    );
-  };
+
+      <motion.div
+        className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.12),transparent_58%)]"
+        animate={{
+          opacity:
+            visualState === "authenticating"
+              ? [0.3, 0.78, 0.46, 0.92, 0.3]
+              : visualState === "processing"
+                ? [0.16, 0.48, 0.22, 0.58, 0.16]
+                : [0.04, 0.1, 0.04],
+        }}
+        transition={{
+          duration:
+            visualState === "authenticating"
+              ? 0.34
+              : visualState === "processing"
+                ? 0.54
+                : 7.6,
+          repeat: Number.POSITIVE_INFINITY,
+          ease: visualState === "idle" ? "easeInOut" : "linear",
+        }}
+      />
+    </motion.div>
+      );
+    })()
+  );
 
   const mainClassName = isMobileViewport
     ? "relative min-h-screen w-screen overflow-x-hidden overflow-y-auto bg-agent-black"
@@ -706,7 +680,7 @@ export default function HomePage() {
         {!isMobileViewport && !isMobileSafeMode && <GlobalScanner />}
 
         {isMobileViewport ? (
-          <div className="relative z-20 flex min-h-screen flex-col px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+1.25rem)] sm:px-6">
+          <div className="relative z-20 flex min-h-screen flex-col bg-[radial-gradient(circle_at_top,rgba(255,215,0,0.08),transparent_30%),linear-gradient(180deg,rgba(255,215,0,0.04),transparent_22%)] px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+1.25rem)] sm:px-6">
             <motion.h1
               className="mx-auto text-center font-orbitron text-5xl font-black uppercase tracking-[0.22em] text-transparent [background-image:linear-gradient(180deg,#fff6bf_0%,#ffe878_18%,#ffd700_42%,#b98a2d_68%,#fff1a6_100%)] bg-clip-text [text-shadow:0_0_26px_rgba(255,215,0,0.12)] sm:text-6xl"
               initial={{ opacity: 0, y: -18 }}
@@ -716,7 +690,7 @@ export default function HomePage() {
               JOEAGENT
             </motion.h1>
 
-            <div className="pointer-events-none relative mt-6 flex min-h-[48svh] items-center justify-center">
+            <div className="pointer-events-none relative mt-6 flex min-h-[48svh] items-center justify-center rounded-[2rem] border border-agent-gold-dark/20 bg-agent-black/30">
               {renderHeroShell(true)}
             </div>
 
@@ -739,6 +713,8 @@ export default function HomePage() {
                 isAgentProcessing={isAgentProcessing}
                 isAuthorized={isAuthorized}
                 setIsAgentProcessing={setIsAgentProcessing}
+                activeProvider={activeProvider}
+                onProviderChange={handleProviderChange}
               />
             </motion.div>
           </div>
@@ -817,6 +793,8 @@ export default function HomePage() {
                     isAgentProcessing={isAgentProcessing}
                     isAuthorized={isAuthorized}
                     setIsAgentProcessing={setIsAgentProcessing}
+                    activeProvider={activeProvider}
+                    onProviderChange={handleProviderChange}
                   />
                 </motion.div>
               </div>
@@ -827,5 +805,3 @@ export default function HomePage() {
     </>
   );
 }
-
-
