@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+﻿import OpenAI from "openai";
 
 const SYSTEM_PROMPT =
   "YOU ARE JOEAGENT. RESPOND ONLY IN ALL CAPS. BE COLD, ROBOTIC, AND FOCUS ON MERCHANT MOE/MANTLE.";
@@ -35,7 +35,7 @@ const FEW_SHOT_MESSAGES = [
 
 const FALLBACK_REPLY = "[SYSTEM_ERROR] NEURAL LINK DISCONNECTED.";
 const AI_OFFLINE_REPLY =
-  "AI RELAYS OFFLINE. PROVIDE OPENAI_API_KEY OR QWEN_API_KEY TO RESTORE JOEAGENT INFERENCE.";
+  "QWEN RELAY OFFLINE. PROVIDE QWEN_API_KEY OR DASHSCOPE_API_KEY TO RESTORE JOEAGENT INFERENCE.";
 const MARKET_OFFLINE_REPLY =
   "PRICE FEED UNAVAILABLE. COINGECKO RELAY FAILED. RETRY THE DIRECTIVE.";
 const HELP_REPLY = [
@@ -51,25 +51,6 @@ const COINGECKO_URL =
 const GATEIO_TICKER_URL =
   "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=";
 const MARKET_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
-const OPENAI_API_KEY_ENV_NAMES = [
-  "OPENAI_API_KEY",
-  "OPENAI-API-KEY",
-  "openai-api-key",
-  "OPENAI_APIKEY",
-  "openai_api_key",
-  "NEXT_PUBLIC_OPENAI_API_KEY",
-];
-const OPENAI_MODEL_ENV_NAMES = [
-  "OPENAI_MODEL",
-  "OPENAI_CHAT_MODEL",
-  "openai-model",
-  "NEXT_PUBLIC_OPENAI_MODEL",
-];
-const OPENAI_BASE_URL_ENV_NAMES = [
-  "OPENAI_BASE_URL",
-  "OPENAI_API_BASE_URL",
-  "openai_base_url",
-];
 const QWEN_API_KEY_ENV_NAMES = [
   "QWEN_API_KEY",
   "DASHSCOPE_API_KEY",
@@ -130,12 +111,13 @@ const getFirstEnvValue = (names) => {
 const normalizeProviderName = (value) => {
   const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
 
-  if (normalized === "qwen" || normalized === "dashscope") {
+  if (
+    normalized === "qwen" ||
+    normalized === "dashscope" ||
+    normalized === "openai" ||
+    normalized === "gpt"
+  ) {
     return "qwen";
-  }
-
-  if (normalized === "openai" || normalized === "gpt") {
-    return "openai";
   }
 
   return "";
@@ -179,13 +161,6 @@ const buildProviderOrder = (requestedProvider = "") => {
 
 const getAIProviderConfigs = (requestedProvider = "") => {
   const providers = {
-    openai: {
-      name: "openai",
-      label: "OPENAI",
-      apiKey: getFirstEnvValue(OPENAI_API_KEY_ENV_NAMES),
-      model: getFirstEnvValue(OPENAI_MODEL_ENV_NAMES) || "gpt-4o-mini",
-      baseURL: getFirstEnvValue(OPENAI_BASE_URL_ENV_NAMES) || undefined,
-    },
     qwen: {
       name: "qwen",
       label: "QWEN",
@@ -337,10 +312,6 @@ const buildProviderFailureReply = (failures) => {
 const buildExplicitProviderMissingReply = (providerName) => {
   if (providerName === "qwen") {
     return "QWEN RELAY OFFLINE. PROVIDE QWEN_API_KEY OR DASHSCOPE_API_KEY TO RESTORE JOEAGENT INFERENCE.";
-  }
-
-  if (providerName === "openai") {
-    return "OPENAI RELAY OFFLINE. PROVIDE OPENAI_API_KEY TO RESTORE JOEAGENT INFERENCE.";
   }
 
   return AI_OFFLINE_REPLY;
