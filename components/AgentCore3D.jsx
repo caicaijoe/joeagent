@@ -54,6 +54,26 @@ function tuneMaterial(material) {
   material.needsUpdate = true;
 }
 
+function tuneMobileMaterial(material) {
+  if (!material) {
+    return;
+  }
+
+  if ("metalness" in material) {
+    material.metalness = 0.56;
+  }
+
+  if ("roughness" in material) {
+    material.roughness = 0.34;
+  }
+
+  if ("emissiveIntensity" in material) {
+    material.emissiveIntensity = Math.max(material.emissiveIntensity ?? 0, 0.34);
+  }
+
+  material.needsUpdate = true;
+}
+
 export default function AgentCore3D({
   mousePos,
   visualState = "idle",
@@ -85,6 +105,25 @@ export default function AgentCore3D({
       tuneMaterial(child.material);
     });
   }, [scene]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      return;
+    }
+
+    scene.traverse((child) => {
+      if (!child.isMesh) {
+        return;
+      }
+
+      if (Array.isArray(child.material)) {
+        child.material.forEach(tuneMobileMaterial);
+        return;
+      }
+
+      tuneMobileMaterial(child.material);
+    });
+  }, [isMobile, scene]);
 
   useFrame((state) => {
     const model = modelRef.current;

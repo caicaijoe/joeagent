@@ -439,7 +439,11 @@ export default function HomePage() {
       }}
     >
       <motion.div
-        className="absolute inset-[-12%] rounded-full bg-[radial-gradient(circle,rgba(255,215,0,0.28)_0%,rgba(255,215,0,0.12)_26%,rgba(255,215,0,0.04)_50%,transparent_72%)] blur-3xl"
+        className={`absolute rounded-full blur-3xl ${
+          isMobileLayout
+            ? "inset-[-16%] bg-[radial-gradient(circle,rgba(255,215,0,0.38)_0%,rgba(255,235,160,0.18)_24%,rgba(255,215,0,0.08)_48%,transparent_76%)]"
+            : "inset-[-12%] bg-[radial-gradient(circle,rgba(255,215,0,0.28)_0%,rgba(255,215,0,0.12)_26%,rgba(255,215,0,0.04)_50%,transparent_72%)]"
+        }`}
         animate={
           visualState === "authenticating"
             ? authenticationFieldAnimation
@@ -494,7 +498,7 @@ export default function HomePage() {
                   draggable="false"
                   className={`h-auto select-none object-contain ${
                     isMobileLayout ? "w-[min(84vw,24rem)]" : "w-[min(74vw,32rem)]"
-                  }`}
+                  } ${isMobileLayout ? "brightness-[1.16] contrast-[1.08] saturate-[1.04]" : ""}`}
                   animate={{
                     scale:
                       visualState === "authenticating"
@@ -526,27 +530,27 @@ export default function HomePage() {
                 fov={isMobileLayout ? 33.5 : 30.5}
                 position={isMobileLayout ? [0, 0.08, 8.25] : [0, 0.04, 7.6]}
               />
-              <ambientLight intensity={0.78} color="#ffffff" />
+              <ambientLight intensity={isMobileLayout ? 1.16 : 0.78} color="#ffffff" />
               <hemisphereLight
                 skyColor="#f8fbff"
                 groundColor="#090909"
-                intensity={0.42}
+                intensity={isMobileLayout ? 0.72 : 0.42}
               />
               <pointLight
                 ref={goldLightRef}
                 position={[3.1, 2.6, 5.8]}
-                intensity={1.05}
+                intensity={isMobileLayout ? 1.52 : 1.05}
                 color="#FFD700"
               />
               <pointLight
                 ref={fillLightRef}
                 position={[-2.2, 2.3, 5.9]}
-                intensity={0.98}
+                intensity={isMobileLayout ? 1.44 : 0.98}
                 color="#ffffff"
               />
               <directionalLight
                 position={[0.2, 1.5, 6.8]}
-                intensity={0.94}
+                intensity={isMobileLayout ? 1.28 : 0.94}
                 color="#ffffff"
               />
 
@@ -571,7 +575,7 @@ export default function HomePage() {
               draggable="false"
               className={`h-auto select-none object-contain ${
                 isMobileLayout ? "w-[min(84vw,24rem)]" : "w-[min(74vw,32rem)]"
-              }`}
+              } ${isMobileLayout ? "brightness-[1.16] contrast-[1.08] saturate-[1.04]" : ""}`}
               animate={{
                 scale:
                   visualState === "authenticating"
@@ -643,7 +647,7 @@ export default function HomePage() {
         {!isMobileViewport && !isMobileSafeMode && <GlobalScanner />}
 
         {isMobileViewport ? (
-          <div className="relative z-20 flex min-h-screen flex-col px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+1.25rem)] sm:px-6">
+          <div className="relative z-20 flex min-h-screen flex-col bg-[radial-gradient(circle_at_top,rgba(255,215,0,0.08),transparent_30%),linear-gradient(180deg,rgba(255,215,0,0.04),transparent_22%)] px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+1.25rem)] sm:px-6">
             <motion.h1
               className="mx-auto text-center font-orbitron text-5xl font-black uppercase tracking-[0.22em] text-transparent [background-image:linear-gradient(180deg,#fff6bf_0%,#ffe878_18%,#ffd700_42%,#b98a2d_68%,#fff1a6_100%)] bg-clip-text [text-shadow:0_0_26px_rgba(255,215,0,0.12)] sm:text-6xl"
               initial={{ opacity: 0, y: -18 }}
@@ -653,7 +657,7 @@ export default function HomePage() {
               JOEAGENT
             </motion.h1>
 
-            <div className="pointer-events-none relative mt-6 flex min-h-[48svh] items-center justify-center">
+            <div className="pointer-events-none relative mt-6 flex min-h-[48svh] items-center justify-center rounded-[2rem] border border-agent-gold-dark/20 bg-agent-black/30">
               {renderHeroShell(true)}
             </div>
 
