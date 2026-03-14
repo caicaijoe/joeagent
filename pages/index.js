@@ -10,6 +10,7 @@ import {
 import Head from "next/head";
 import dynamic from "next/dynamic";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import * as THREE from "three";
 import AgentWindow from "../AgentWindow";
 import HeroRenderBoundary from "../components/HeroRenderBoundary";
 import useAgentSound from "../hooks/useAgentSound";
@@ -524,35 +525,47 @@ export default function HomePage() {
             <Canvas
               dpr={isMobileLayout || isMobileSafeMode ? [1, 1.35] : [1, 2]}
               gl={{ alpha: true, antialias: !(isMobileLayout || isMobileSafeMode) }}
+              onCreated={({ gl }) => {
+                gl.outputColorSpace = THREE.SRGBColorSpace;
+                gl.toneMapping = THREE.ACESFilmicToneMapping;
+                gl.toneMappingExposure = isMobileLayout ? 1.42 : 1.08;
+              }}
             >
               <PerspectiveCamera
                 makeDefault
                 fov={isMobileLayout ? 33.5 : 30.5}
                 position={isMobileLayout ? [0, 0.08, 8.25] : [0, 0.04, 7.6]}
               />
-              <ambientLight intensity={isMobileLayout ? 1.16 : 0.78} color="#ffffff" />
+              <ambientLight intensity={isMobileLayout ? 1.42 : 0.78} color="#ffffff" />
               <hemisphereLight
                 skyColor="#f8fbff"
                 groundColor="#090909"
-                intensity={isMobileLayout ? 0.72 : 0.42}
+                intensity={isMobileLayout ? 0.94 : 0.42}
               />
               <pointLight
                 ref={goldLightRef}
                 position={[3.1, 2.6, 5.8]}
-                intensity={isMobileLayout ? 1.52 : 1.05}
+                intensity={isMobileLayout ? 1.88 : 1.05}
                 color="#FFD700"
               />
               <pointLight
                 ref={fillLightRef}
                 position={[-2.2, 2.3, 5.9]}
-                intensity={isMobileLayout ? 1.44 : 0.98}
+                intensity={isMobileLayout ? 1.84 : 0.98}
                 color="#ffffff"
               />
               <directionalLight
                 position={[0.2, 1.5, 6.8]}
-                intensity={isMobileLayout ? 1.28 : 0.94}
+                intensity={isMobileLayout ? 1.72 : 0.94}
                 color="#ffffff"
               />
+              {isMobileLayout && (
+                <directionalLight
+                  position={[0, -0.4, 4.8]}
+                  intensity={1.08}
+                  color="#ffffff"
+                />
+              )}
 
               <Suspense fallback={null}>
                 <AgentCore3D
@@ -647,7 +660,7 @@ export default function HomePage() {
         {!isMobileViewport && !isMobileSafeMode && <GlobalScanner />}
 
         {isMobileViewport ? (
-          <div className="relative z-20 flex min-h-screen flex-col bg-[radial-gradient(circle_at_top,rgba(255,215,0,0.08),transparent_30%),linear-gradient(180deg,rgba(255,215,0,0.04),transparent_22%)] px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+1.25rem)] sm:px-6">
+          <div className="relative z-20 flex min-h-screen flex-col px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+1.25rem)] sm:px-6">
             <motion.h1
               className="mx-auto text-center font-orbitron text-5xl font-black uppercase tracking-[0.22em] text-transparent [background-image:linear-gradient(180deg,#fff6bf_0%,#ffe878_18%,#ffd700_42%,#b98a2d_68%,#fff1a6_100%)] bg-clip-text [text-shadow:0_0_26px_rgba(255,215,0,0.12)] sm:text-6xl"
               initial={{ opacity: 0, y: -18 }}
@@ -657,7 +670,7 @@ export default function HomePage() {
               JOEAGENT
             </motion.h1>
 
-            <div className="pointer-events-none relative mt-6 flex min-h-[48svh] items-center justify-center rounded-[2rem] border border-agent-gold-dark/20 bg-agent-black/30">
+            <div className="pointer-events-none relative mt-6 flex min-h-[48svh] items-center justify-center">
               {renderHeroShell(true)}
             </div>
 
