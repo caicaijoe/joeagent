@@ -67,7 +67,6 @@ const logLines = [
 ];
 const DESKTOP_HERO_IMAGE_PATH = "/images/hero_robot_high_res_v2.png";
 const MOBILE_HERO_IMAGE_PATH = "/models/joeagent_mobile.png";
-const DEFAULT_MODEL_PROVIDER = "qwen";
 const MOBILE_RENDER_BREAKPOINT = 768;
 
 const idleGlow = [
@@ -171,7 +170,6 @@ export default function HomePage() {
   const [isAgentProcessing, setIsAgentProcessing] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [linkStatus, setLinkStatus] = useState("idle");
-  const [activeProvider, setActiveProvider] = useState(DEFAULT_MODEL_PROVIDER);
   const [isModelResyncing, setIsModelResyncing] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMobileRenderTier, setIsMobileRenderTier] = useState(false);
@@ -371,20 +369,6 @@ export default function HomePage() {
       setLinkStatus("granted");
       linkTimeoutRef.current = null;
     }, 1500);
-  };
-
-  const handleProviderChange = (provider) => {
-    setActiveProvider(provider);
-    setIsModelResyncing(true);
-
-    if (modelResyncTimeoutRef.current) {
-      window.clearTimeout(modelResyncTimeoutRef.current);
-    }
-
-    modelResyncTimeoutRef.current = window.setTimeout(() => {
-      setIsModelResyncing(false);
-      modelResyncTimeoutRef.current = null;
-    }, 500);
   };
 
   const linkButtonLabel =
@@ -713,8 +697,6 @@ export default function HomePage() {
                 isAgentProcessing={isAgentProcessing}
                 isAuthorized={isAuthorized}
                 setIsAgentProcessing={setIsAgentProcessing}
-                activeProvider={activeProvider}
-                onProviderChange={handleProviderChange}
               />
             </motion.div>
           </div>
@@ -793,8 +775,6 @@ export default function HomePage() {
                     isAgentProcessing={isAgentProcessing}
                     isAuthorized={isAuthorized}
                     setIsAgentProcessing={setIsAgentProcessing}
-                    activeProvider={activeProvider}
-                    onProviderChange={handleProviderChange}
                   />
                 </motion.div>
               </div>
