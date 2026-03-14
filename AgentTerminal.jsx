@@ -61,7 +61,7 @@ export default function AgentTerminal({
   isAgentProcessing,
   isAuthorized = false,
   setIsAgentProcessing,
-  activeProvider = "gpt",
+  activeProvider = "qwen",
   onProviderChange = () => {},
 }) {
   const { playEnter, playError, playConfirm } = useAgentSound();
