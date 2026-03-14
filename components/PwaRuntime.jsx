@@ -49,6 +49,7 @@ export default function PwaRuntime() {
   const showTimerRef = useRef(null);
   const [isToastVisible, setIsToastVisible] = useState(false);
   const [canPromptInstall, setCanPromptInstall] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
@@ -117,7 +118,9 @@ export default function PwaRuntime() {
     const queueToast = (delay = INSTALL_TOAST_DELAY_MS) => {
       window.clearTimeout(showTimerRef.current);
       showTimerRef.current = window.setTimeout(() => {
-        setIsToastVisible(true);
+        if (!isDismissed) {
+          setIsToastVisible(true);
+        }
       }, delay);
     };
 
@@ -125,13 +128,16 @@ export default function PwaRuntime() {
       event.preventDefault();
       deferredPromptRef.current = event;
       setCanPromptInstall(true);
-      setIsToastVisible(true);
+      if (!isDismissed) {
+        setIsToastVisible(true);
+      }
     };
 
     const handleAppInstalled = () => {
       deferredPromptRef.current = null;
       setCanPromptInstall(false);
       setIsToastVisible(false);
+      setIsDismissed(true);
     };
 
     queueToast();
@@ -144,7 +150,15 @@ export default function PwaRuntime() {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, []);
+  }, [isDismissed]);
+
+  const handleToastDismiss = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    window.clearTimeout(showTimerRef.current);
+    setIsDismissed(true);
+    setIsToastVisible(false);
+  };
 
   const handleToastClick = async () => {
     const deferredPrompt = deferredPromptRef.current;
@@ -171,25 +185,41 @@ export default function PwaRuntime() {
   }
 
   return (
-    <motion.button
-      type="button"
-      onClick={handleToastClick}
+    <motion.div
       aria-live="polite"
       initial={{ x: 50, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
-      className={`fixed right-6 top-6 z-[100] w-[min(92vw,28rem)] border border-[#8A6D3B] bg-[#050505]/94 px-4 py-3 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-[#FFD700] shadow-[0_0_22px_rgba(255,215,0,0.24)] backdrop-blur-md transition duration-300 sm:right-8 sm:top-8 lg:right-10 lg:top-10 ${
-        canPromptInstall
-          ? "cursor-pointer hover:bg-[#111111] hover:shadow-[0_0_28px_rgba(255,215,0,0.32)]"
-          : "cursor-default"
-      }`}
+      className="fixed right-6 top-6 z-[100] w-[min(92vw,28rem)] border border-[#8A6D3B] bg-[#050505]/94 px-4 py-3 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-[#FFD700] shadow-[0_0_22px_rgba(255,215,0,0.24)] backdrop-blur-md sm:right-8 sm:top-8 lg:right-10 lg:top-10"
     >
-      <div className="mb-1 text-[9px] tracking-[0.26em] text-[#FFF1A6]/75">
-        {canPromptInstall ? "DESKTOP PACKAGE READY" : "PWA HANDSHAKE DETECTED"}
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div className="text-[9px] tracking-[0.26em] text-[#FFF1A6]/75">
+          {canPromptInstall ? "DESKTOP PACKAGE READY" : "PWA HANDSHAKE DETECTED"}
+        </div>
+
+        <button
+          type="button"
+          aria-label="Dismiss install prompt"
+          onClick={handleToastDismiss}
+          className="inline-flex h-5 w-5 items-center justify-center border border-[#8A6D3B]/70 text-[10px] leading-none text-[#FFF1A6]/80 transition duration-200 hover:border-[#FFD700] hover:text-[#FFD700]"
+        >
+          X
+        </button>
       </div>
-      <div className="leading-relaxed">
-        &gt; SYSTEM_DETACHMENT_READY: INSTALL TO DESKTOP?
-      </div>
-    </motion.button>
+
+      <button
+        type="button"
+        onClick={handleToastClick}
+        className={`block w-full text-left transition duration-300 ${
+          canPromptInstall
+            ? "cursor-pointer hover:text-[#FFF1A6]"
+            : "cursor-default"
+        }`}
+      >
+        <div className="leading-relaxed">
+          &gt; SYSTEM_DETACHMENT_READY: INSTALL TO DESKTOP?
+        </div>
+      </button>
+    </motion.div>
   );
 }
