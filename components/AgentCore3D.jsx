@@ -1,11 +1,16 @@
-"use client";
+﻿"use client";
 
 import { Center, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
-const MODEL_PATH = "/Meshy_AI_Golden_Circuit_0314100435_texture.glb";
+const DESKTOP_MODEL_PATH = "/joeagent.glb";
+const MOBILE_MODEL_CANDIDATES = [
+  "/models/joeagent_mobile.glb",
+  "/joeagent_mobile.glb",
+  "/models/Meshy_AI_Golden_Circuit_0314100435_texture.glb",
+];
 const IDLE_GOLD = new THREE.Color("#FFD700");
 const ACTIVE_GOLD = new THREE.Color("#FFF4B5");
 const AUTH_GOLD = new THREE.Color("#FFFBE0");
@@ -18,88 +23,159 @@ const MOBILE_MODEL_SCALE = 1.72;
 const BASE_POSITION_Y = 0.28;
 const MOBILE_BASE_POSITION_Y = 0.22;
 
-function tuneMaterial(material) {
-  if (!material) {
+function applyColorTextureSettings(texture) {
+  if (!texture) {
     return;
   }
 
-  if ("metalness" in material) {
-    material.metalness = 0.62;
-  }
-
-  if ("roughness" in material) {
-    material.roughness = 0.48;
-  }
-
-  if ("envMapIntensity" in material) {
-    material.envMapIntensity = 0;
-  }
-
-  if ("clearcoat" in material) {
-    material.clearcoat = 0;
-  }
-
-  if ("clearcoatRoughness" in material) {
-    material.clearcoatRoughness = 1;
-  }
-
-  if ("emissive" in material) {
-    material.emissive.copy(EMISSIVE_GOLD);
-  }
-
-  if ("emissiveIntensity" in material) {
-    material.emissiveIntensity = Math.max(material.emissiveIntensity ?? 0, 0.22);
-  }
-
-  if (material.map) {
-    material.map.colorSpace = THREE.SRGBColorSpace;
-    material.map.needsUpdate = true;
-  }
-
-  if (material.emissiveMap) {
-    material.emissiveMap.colorSpace = THREE.SRGBColorSpace;
-    material.emissiveMap.needsUpdate = true;
-  }
-
-  material.needsUpdate = true;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
 }
 
-function tuneMobileMaterial(material) {
+function cloneMaterial(material) {
   if (!material) {
-    return;
+    return material;
   }
 
-  if ("metalness" in material) {
-    material.metalness = 0.56;
+  return typeof material.clone === "function" ? material.clone() : material;
+}
+
+function tuneDesktopMaterial(material) {
+  const nextMaterial = cloneMaterial(material);
+
+  if (!nextMaterial) {
+    return nextMaterial;
   }
 
-  if ("roughness" in material) {
-    material.roughness = 0.34;
+  if (!material) {
+    return nextMaterial;
   }
 
-  if ("emissiveIntensity" in material) {
-    material.emissiveIntensity = Math.max(material.emissiveIntensity ?? 0, 0.56);
+  if ("metalness" in nextMaterial) {
+    nextMaterial.metalness = 0.62;
   }
 
-  if ("envMapIntensity" in material) {
-    material.envMapIntensity = 0.08;
+  if ("roughness" in nextMaterial) {
+    nextMaterial.roughness = 0.48;
   }
 
-  if (material.color) {
-    material.color.offsetHSL(0, 0.04, 0.1);
+  if ("envMapIntensity" in nextMaterial) {
+    nextMaterial.envMapIntensity = 0;
   }
 
-  if (material.map) {
-    material.map.colorSpace = THREE.SRGBColorSpace;
-    material.map.needsUpdate = true;
+  if ("clearcoat" in nextMaterial) {
+    nextMaterial.clearcoat = 0;
   }
 
-  if (material.emissiveMap) {
-    material.emissiveMap.colorSpace = THREE.SRGBColorSpace;
-    material.emissiveMap.needsUpdate = true;
+  if ("clearcoatRoughness" in nextMaterial) {
+    nextMaterial.clearcoatRoughness = 1;
   }
 
-  material.needsUpdate = true;
+  if ("emissive" in nextMaterial) {
+    nextMaterial.emissive.copy(EMISSIVE_GOLD);
+  }
+
+  if ("emissiveIntensity" in nextMaterial) {
+    nextMaterial.emissiveIntensity = Math.max(
+      nextMaterial.emissiveIntensity ?? 0,
+      0.22
+    );
+  }
+
+  applyColorTextureSettings(nextMaterial.map);
+  applyColorTextureSettings(nextMaterial.emissiveMap);
+
+  nextMaterial.needsUpdate = true;
+  return nextMaterial;
+}
+
+function createMobileMaterial(material) {
+  if (!material) {
+    return material;
+  }
+
+  const color =
+    material.color instanceof THREE.Color
+      ? material.color.clone().offsetHSL(0, 0.03, 0.08)
+      : new THREE.Color("#f6d14b");
+
+  const nextMaterial = new THREE.MeshBasicMaterial({
+    name: material.name ? `${material.name}-mobile` : "joeagent-mobile-basic",
+    color,
+    map: material.map ?? null,
+    transparent: Boolean(
+      material.transparent || material.alphaMap || material.opacity < 1
+    ),
+    opacity: material.opacity ?? 1,
+    alphaMap: material.alphaMap ?? null,
+    side: material.side ?? THREE.FrontSide,
+    fog: false,
+    toneMapped: false,
+  });
+
+  if ("vertexColors" in nextMaterial && "vertexColors" in material) {
+    nextMaterial.vertexColors = material.vertexColors;
+  }
+
+  applyColorTextureSettings(nextMaterial.map);
+  nextMaterial.needsUpdate = true;
+
+  return nextMaterial;
+}
+
+function configureMeshMaterial(material, useMobileTier) {
+  if (Array.isArray(material)) {
+    return material.map((entry) => configureMeshMaterial(entry, useMobileTier));
+  }
+
+  return useMobileTier
+    ? createMobileMaterial(material)
+    : tuneDesktopMaterial(material);
+}
+
+function cloneSceneGraph(scene) {
+  const nextScene = scene.clone(true);
+
+  nextScene.traverse((child) => {
+    if (!child.isMesh) {
+      return;
+    }
+
+    if (Array.isArray(child.material)) {
+      child.material = child.material.map((entry) => cloneMaterial(entry));
+      return;
+    }
+
+    child.material = cloneMaterial(child.material);
+  });
+
+  return nextScene;
+}
+
+async function resolveModelPath(useMobileTier, signal) {
+  if (!useMobileTier || typeof window === "undefined") {
+    return DESKTOP_MODEL_PATH;
+  }
+
+  for (const candidate of MOBILE_MODEL_CANDIDATES) {
+    try {
+      const response = await fetch(candidate, {
+        method: "HEAD",
+        cache: "no-store",
+        signal,
+      });
+
+      if (response.ok) {
+        return candidate;
+      }
+    } catch (error) {
+      if (signal?.aborted) {
+        return DESKTOP_MODEL_PATH;
+      }
+    }
+  }
+
+  return DESKTOP_MODEL_PATH;
 }
 
 export default function AgentCore3D({
@@ -108,10 +184,49 @@ export default function AgentCore3D({
   goldLightRef,
   fillLightRef,
   isMobile = false,
+  useMobileTier = false,
 }) {
   const modelRef = useRef(null);
   const auraColorRef = useRef(new THREE.Color("#FFD700"));
-  const { scene } = useGLTF(MODEL_PATH);
+  const warnedMissingMobileAssetRef = useRef(false);
+  const [modelPath, setModelPath] = useState(DESKTOP_MODEL_PATH);
+  const { scene: loadedScene } = useGLTF(modelPath);
+  const scene = useMemo(() => cloneSceneGraph(loadedScene), [loadedScene]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
+    resolveModelPath(useMobileTier, controller.signal)
+      .then((resolvedPath) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setModelPath(resolvedPath);
+
+        if (
+          useMobileTier &&
+          resolvedPath === DESKTOP_MODEL_PATH &&
+          !warnedMissingMobileAssetRef.current
+        ) {
+          warnedMissingMobileAssetRef.current = true;
+          console.warn(
+            "JOEAGENT mobile model not found. Add /public/models/joeagent_mobile.glb to enable the mobile render tier."
+          );
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setModelPath(DESKTOP_MODEL_PATH);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [useMobileTier]);
 
   useEffect(() => {
     scene.rotation.set(0, 0, 0);
@@ -122,36 +237,11 @@ export default function AgentCore3D({
         return;
       }
 
-      child.castShadow = true;
-      child.receiveShadow = true;
-
-      if (Array.isArray(child.material)) {
-        child.material.forEach(tuneMaterial);
-        return;
-      }
-
-      tuneMaterial(child.material);
+      child.castShadow = !useMobileTier;
+      child.receiveShadow = !useMobileTier;
+      child.material = configureMeshMaterial(child.material, useMobileTier);
     });
-  }, [scene]);
-
-  useEffect(() => {
-    if (!isMobile) {
-      return;
-    }
-
-    scene.traverse((child) => {
-      if (!child.isMesh) {
-        return;
-      }
-
-      if (Array.isArray(child.material)) {
-        child.material.forEach(tuneMobileMaterial);
-        return;
-      }
-
-      tuneMobileMaterial(child.material);
-    });
-  }, [isMobile, scene]);
+  }, [scene, useMobileTier]);
 
   useFrame((state) => {
     const model = modelRef.current;
@@ -257,4 +347,6 @@ export default function AgentCore3D({
   );
 }
 
-useGLTF.preload(MODEL_PATH);
+useGLTF.preload(DESKTOP_MODEL_PATH);
+useGLTF.preload("/models/Meshy_AI_Golden_Circuit_0314100435_texture.glb");
+
