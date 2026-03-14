@@ -144,7 +144,7 @@ const buildProviderOrder = (requestedProvider = "") => {
     return [explicitProvider];
   }
 
-  return ["qwen", "openai"];
+  return ["qwen"];
 };
 
 const getAIProviderConfigs = (requestedProvider = "") => {
@@ -427,25 +427,14 @@ const buildPriceReport = (marketData) =>
   ].join("\n");
 
 async function generateAIReply(messages, requestedProvider = "") {
-  const explicitProvider = normalizeProviderName(requestedProvider);
-  const providers = getAIProviderConfigs(requestedProvider);
+  const effectiveProvider =
+    normalizeProviderName(requestedProvider) || "qwen";
+  const providers = getAIProviderConfigs(effectiveProvider);
 
   if (providers.length === 0) {
-    if (explicitProvider) {
-      return {
-        ok: false,
-        reply: buildExplicitProviderMissingReply(explicitProvider),
-      };
-    }
-
-    console.warn(
-      "JOEAGENT AI CONFIG WARNING: NO API KEY FOUND.",
-      OPENAI_API_KEY_ENV_NAMES,
-      QWEN_API_KEY_ENV_NAMES
-    );
     return {
       ok: false,
-      reply: AI_OFFLINE_REPLY,
+      reply: buildExplicitProviderMissingReply(effectiveProvider),
     };
   }
 
