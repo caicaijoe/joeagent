@@ -6,6 +6,7 @@ import useAgentSound from "./hooks/useAgentSound";
 import TypewriterText from "./TypewriterText";
 
 const FALLBACK_REPLY = "[SYSTEM_ERROR] NEURAL LINK DISCONNECTED.";
+const DEFAULT_PROVIDER = "qwen";
 const ALPHA_COMMAND = "/ALPHA";
 const ALPHA_LOCKED_REPLY =
   "> ERROR: OPERATOR NOT INITIALIZED. ACTIVATE AI_LINK TO PROCEED.";
@@ -184,6 +185,7 @@ export default function AgentTerminal({
         },
         body: JSON.stringify({
           messages: requestMessages,
+          provider: DEFAULT_PROVIDER,
         }),
       });
 
