@@ -6,6 +6,9 @@ import useAgentSound from "./hooks/useAgentSound";
 import TypewriterText from "./TypewriterText";
 
 const FALLBACK_REPLY = "[SYSTEM_ERROR] NEURAL LINK DISCONNECTED.";
+const ALPHA_COMMAND = "/ALPHA";
+const ALPHA_LOCKED_REPLY =
+  "> ERROR: OPERATOR NOT INITIALIZED. ACTIVATE AI_LINK TO PROCEED.";
 const QUICK_COMMANDS = ["/PRICE", "/MARKET", "/HELP"];
 const BOOT_MESSAGE_ID = "boot-4";
 const BOOT_SEQUENCE = [
@@ -56,6 +59,7 @@ const toApiHistory = (messages) =>
 
 export default function AgentTerminal({
   isAgentProcessing,
+  isAuthorized = false,
   setIsAgentProcessing,
 }) {
   const { playEnter, playError, playConfirm } = useAgentSound();
@@ -72,6 +76,9 @@ export default function AgentTerminal({
   const submitLockRef = useRef(false);
 
   const isBusy = isBootTyping || isAgentProcessing;
+  const quickCommands = isAuthorized
+    ? [...QUICK_COMMANDS, ALPHA_COMMAND]
+    : QUICK_COMMANDS;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
@@ -101,12 +108,16 @@ export default function AgentTerminal({
     return createMessage(id, role, content, options);
   };
 
-  const appendAgentMessage = (content) => {
+  const appendAgentMessage = (content, options = {}) => {
+    const { pending = true, ...messageOptions } = options;
     const message = createRuntimeMessage("assistant", content, {
       typed: false,
+      ...messageOptions,
     });
 
-    pendingReplyIdRef.current = message.id;
+    if (pending) {
+      pendingReplyIdRef.current = message.id;
+    }
     setHistory((prev) => [...prev, message]);
   };
 
@@ -131,8 +142,25 @@ export default function AgentTerminal({
 
   const submitOperatorMessage = async (rawValue) => {
     const value = typeof rawValue === "string" ? rawValue.trim() : "";
+    const normalizedValue = value.toUpperCase();
+    const isAlphaCommand = normalizedValue === ALPHA_COMMAND;
 
     if (!value || isBusy || submitLockRef.current) {
+      return;
+    }
+
+    if (isAlphaCommand && !isAuthorized) {
+      const userMessage = createRuntimeMessage("user", value, {
+        localOnly: true,
+      });
+
+      setHistory((prev) => [...prev, userMessage]);
+      setInput("");
+      playError();
+      appendAgentMessage(ALPHA_LOCKED_REPLY, {
+        localOnly: true,
+        pending: false,
+      });
       return;
     }
 
@@ -243,7 +271,7 @@ export default function AgentTerminal({
 
       <div className="border-t border-agent-gold-dark/70 bg-agent-black/70 px-4 py-3">
         <div className="mb-3 flex flex-wrap gap-2">
-          {QUICK_COMMANDS.map((command) => (
+          {quickCommands.map((command) => (
             <motion.button
               key={command}
               type="button"
@@ -262,7 +290,11 @@ export default function AgentTerminal({
                 repeat: Number.POSITIVE_INFINITY,
                 ease: "linear",
               }}
-              className="group relative overflow-hidden border border-[#8A6D3B] bg-black/50 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.24em] text-[#FFD700]/85 backdrop-blur-sm transition duration-200 hover:border-[#FFD700] hover:text-[#FFD700] hover:shadow-[0_0_8px_rgba(255,215,0,0.22)] hover:[text-shadow:0_0_6px_rgba(255,215,0,0.5)] disabled:cursor-not-allowed disabled:opacity-40"
+              className={`group relative overflow-hidden border bg-black/50 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.24em] backdrop-blur-sm transition duration-200 disabled:cursor-not-allowed disabled:opacity-40 ${
+                command === ALPHA_COMMAND
+                  ? "border-[#FFD700] text-[#FFD700] shadow-[0_0_10px_rgba(255,215,0,0.3),inset_0_0_10px_rgba(255,215,0,0.08)] hover:shadow-[0_0_14px_rgba(255,215,0,0.42)] hover:[text-shadow:0_0_10px_rgba(255,215,0,0.78)]"
+                  : "border-[#8A6D3B] text-[#FFD700]/85 hover:border-[#FFD700] hover:text-[#FFD700] hover:shadow-[0_0_8px_rgba(255,215,0,0.22)] hover:[text-shadow:0_0_6px_rgba(255,215,0,0.5)]"
+              }`}
             >
               <span className="absolute inset-0 bg-[linear-gradient(120deg,transparent_0%,rgba(255,215,0,0.1)_50%,transparent_100%)] opacity-0 transition duration-200 group-hover:opacity-100" />
               <span className="relative">{command}</span>

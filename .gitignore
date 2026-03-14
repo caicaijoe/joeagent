@@ -8,3 +8,5 @@ start-dev.cmd
 # OS/editor noise
 .DS_Store
 Thumbs.db
+
+.vercel

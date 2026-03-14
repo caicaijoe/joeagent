@@ -8,12 +8,15 @@ import * as THREE from "three";
 const MODEL_PATH = "/Meshy_AI_Golden_Circuit_0314100435_texture.glb";
 const IDLE_GOLD = new THREE.Color("#FFD700");
 const ACTIVE_GOLD = new THREE.Color("#FFF4B5");
+const AUTH_GOLD = new THREE.Color("#FFFBE0");
 const FILL_SILVER = new THREE.Color("#F7F9FF");
 const EMISSIVE_GOLD = new THREE.Color("#4C3700");
 const FRONT_ROTATION_X = 0.14;
 const FRONT_ROTATION_Y = 0;
 const MODEL_SCALE = 1.58;
+const MOBILE_MODEL_SCALE = 1.72;
 const BASE_POSITION_Y = 0.28;
+const MOBILE_BASE_POSITION_Y = 0.22;
 
 function tuneMaterial(material) {
   if (!material) {
@@ -53,9 +56,10 @@ function tuneMaterial(material) {
 
 export default function AgentCore3D({
   mousePos,
-  isAgentProcessing,
+  visualState = "idle",
   goldLightRef,
   fillLightRef,
+  isMobile = false,
 }) {
   const modelRef = useRef(null);
   const auraColorRef = useRef(new THREE.Color("#FFD700"));
@@ -84,6 +88,10 @@ export default function AgentCore3D({
 
   useFrame((state) => {
     const model = modelRef.current;
+    const isAuthenticating = visualState === "authenticating";
+    const isAgentProcessing = visualState === "processing";
+    const isActive = visualState !== "idle";
+    const basePositionY = isMobile ? MOBILE_BASE_POSITION_Y : BASE_POSITION_Y;
 
     if (!model) {
       return;
@@ -106,15 +114,19 @@ export default function AgentCore3D({
       0.08
     );
 
-    if (isAgentProcessing) {
+    if (isAuthenticating) {
+      model.position.x = (Math.random() - 0.5) * 0.08;
+      model.position.y = basePositionY + (Math.random() - 0.5) * 0.08;
+      model.position.z = -0.08 + (Math.random() - 0.5) * 0.06;
+    } else if (isAgentProcessing) {
       model.position.x = (Math.random() - 0.5) * 0.05;
-      model.position.y = BASE_POSITION_Y + (Math.random() - 0.5) * 0.05;
+      model.position.y = basePositionY + (Math.random() - 0.5) * 0.05;
       model.position.z = -0.08 + (Math.random() - 0.5) * 0.04;
     } else {
       model.position.x = THREE.MathUtils.lerp(model.position.x, 0, 0.08);
       model.position.y = THREE.MathUtils.lerp(
         model.position.y,
-        BASE_POSITION_Y + Math.sin(state.clock.elapsedTime) * 0.11,
+        basePositionY + Math.sin(state.clock.elapsedTime) * 0.11,
         0.08
       );
       model.position.z = THREE.MathUtils.lerp(model.position.z, -0.08, 0.08);
@@ -123,7 +135,18 @@ export default function AgentCore3D({
     const goldLight = goldLightRef?.current;
 
     if (goldLight) {
-      if (isAgentProcessing) {
+      if (isAuthenticating) {
+        const pulse = (Math.sin(state.clock.elapsedTime * 14) + 1) / 2;
+
+        goldLight.intensity = THREE.MathUtils.lerp(
+          goldLight.intensity,
+          1.8 + pulse * 0.72,
+          0.24
+        );
+
+        auraColorRef.current.copy(IDLE_GOLD).lerp(AUTH_GOLD, pulse);
+        goldLight.color.lerp(auraColorRef.current, 0.24);
+      } else if (isAgentProcessing) {
         const pulse = (Math.sin(state.clock.elapsedTime * 8) + 1) / 2;
 
         goldLight.intensity = THREE.MathUtils.lerp(
@@ -143,19 +166,23 @@ export default function AgentCore3D({
     const fillLight = fillLightRef?.current;
 
     if (fillLight) {
-      const targetFillIntensity = isAgentProcessing ? 1.12 : 0.96;
+      const targetFillIntensity = isAuthenticating
+        ? 1.34
+        : isAgentProcessing
+          ? 1.12
+          : 0.96;
 
       fillLight.intensity = THREE.MathUtils.lerp(
         fillLight.intensity,
         targetFillIntensity,
-        isAgentProcessing ? 0.14 : 0.08
+        isActive ? 0.16 : 0.08
       );
       fillLight.color.lerp(FILL_SILVER, 0.08);
     }
   });
 
   return (
-    <group ref={modelRef} scale={MODEL_SCALE}>
+    <group ref={modelRef} scale={isMobile ? MOBILE_MODEL_SCALE : MODEL_SCALE}>
       <Center>
         <primitive object={scene} />
       </Center>
